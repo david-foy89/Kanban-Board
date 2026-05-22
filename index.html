@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta
+      name="description"
+      content="Interactive Kanban board — drag tasks between columns, set priorities, and manage your workflow. Built with React."
+    />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Open Graph (link previews when shared) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Kanban Board" />
+    <meta
+      property="og:description"
+      content="Interactive Kanban board with drag-and-drop, priorities, and persistent local storage."
+    />
+    <meta property="og:locale" content="en_US" />
+
+    <title>Kanban Board</title>
+    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
+    <link rel="apple-touch-icon" href="./vite.svg" />
+
+    <!-- Initial shell styles (shown before React loads) -->
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: #09090b;
+        color: #fafafa;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      #root {
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+
+      .app-loading {
+        display: flex;
+        min-height: 100vh;
+        min-height: 100dvh;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+      }
+
+      .app-loading__spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 2px solid #3f3f46;
+        border-top-color: #8b5cf6;
+        border-radius: 50%;
+        animation: app-loading-spin 0.7s linear infinite;
+      }
+
+      .app-loading__title {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+      }
+
+      .app-loading__text {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #71717a;
+      }
+
+      @keyframes app-loading-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      noscript {
+        display: block;
+        max-width: 28rem;
+        margin: 2rem auto;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #3f3f46;
+        border-radius: 0.75rem;
+        background: #18181b;
+        color: #e4e4e7;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <strong>JavaScript is required.</strong> Enable JavaScript in your browser to
+      run this Kanban board, or use a modern browser that supports ES modules.
+    </noscript>
+
+    <div id="root">
+      <div class="app-loading" role="status" aria-live="polite" aria-busy="true">
+        <div class="app-loading__spinner" aria-hidden="true"></div>
+        <p class="app-loading__title">Kanban Board</p>
+        <p class="app-loading__text">Loading application…</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

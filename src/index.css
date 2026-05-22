@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply min-h-screen min-h-dvh bg-zinc-950 text-zinc-100;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  #root {
+    @apply flex min-h-screen min-h-dvh flex-col;
+  }
+}
+
+@layer components {
+  .board-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 0.75rem;
+  }
+
+  @media (min-width: 40rem) {
+    .board-scroll {
+      scroll-padding-inline: 1.5rem;
+    }
+  }
+}
