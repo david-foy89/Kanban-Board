@@ -46,10 +46,34 @@ export const createInitialBoardState = (): BoardState => {
   };
 };
 
-function isValidBoardSlice(data: unknown): data is BoardState {
-  if (!data || typeof data !== 'object') return false;
+/** Unwrap zustand persist payload or raw board JSON from older saves */
+function normalizePersistedBoard(data: unknown): BoardState | null {
+  if (!data || typeof data !== 'object') return null;
 
-  const { columns, tasks, columnOrder } = data as BoardState;
+  const record = data as Record<string, unknown>;
+
+  if (
+    record.columns &&
+    typeof record.columns === 'object' &&
+    record.tasks &&
+    typeof record.tasks === 'object' &&
+    Array.isArray(record.columnOrder)
+  ) {
+    return record as unknown as BoardState;
+  }
+
+  if (record.state && typeof record.state === 'object') {
+    return normalizePersistedBoard(record.state);
+  }
+
+  return null;
+}
+
+function isValidBoardSlice(data: unknown): data is BoardState {
+  const normalized = normalizePersistedBoard(data);
+  if (!normalized) return false;
+
+  const { columns, tasks, columnOrder } = normalized;
 
   if (!columns || typeof columns !== 'object' || Array.isArray(columns)) return false;
   if (!tasks || typeof tasks !== 'object' || Array.isArray(tasks)) return false;
@@ -262,15 +286,23 @@ export const useKanbanStore = create<KanbanStore>()(
       version: STORAGE_VERSION,
       storage: kanbanPersistStorage,
       partialize: boardSlice,
+      migrate: (persisted) => {
+        const normalized = normalizePersistedBoard(persisted);
+        if (normalized && isValidBoardSlice(normalized)) {
+          return boardSlice({ ...createInitialBoardState(), ...normalized } as KanbanStore);
+        }
+        return boardSlice({ ...createInitialBoardState() } as KanbanStore);
+      },
       merge: (persisted, current) => {
-        if (!isValidBoardSlice(persisted)) {
+        const normalized = normalizePersistedBoard(persisted);
+        if (!normalized || !isValidBoardSlice(normalized)) {
           return current;
         }
         return {
           ...current,
-          columns: persisted.columns,
-          tasks: persisted.tasks,
-          columnOrder: persisted.columnOrder,
+          columns: normalized.columns,
+          tasks: normalized.tasks,
+          columnOrder: normalized.columnOrder,
         };
       },
     },

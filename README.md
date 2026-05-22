@@ -19,6 +19,8 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
+> **Important:** Run `npm run dev` and use the URL above. Do not open `index.html` directly in the browser (file://) — the app needs the Vite dev server or a production build in `dist/`.
+
 ## Scripts
 
 | Command        | Description          |
