@@ -1,12 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { BoardState, Column, Priority, Task } from '../types/kanban';
+import { kanbanPersistStorage } from './storage';
 
-const STORAGE_KEY = 'kanban-board-state';
+export const STORAGE_KEY = 'kanban-board-state';
+const STORAGE_VERSION = 1;
 
 const createId = (): string => crypto.randomUUID();
 
-const initialBoardState = (): BoardState => {
+export const createInitialBoardState = (): BoardState => {
   const todoId = createId();
   const inProgressId = createId();
   const doneId = createId();
@@ -44,6 +46,35 @@ const initialBoardState = (): BoardState => {
   };
 };
 
+function isValidBoardSlice(data: unknown): data is BoardState {
+  if (!data || typeof data !== 'object') return false;
+
+  const { columns, tasks, columnOrder } = data as BoardState;
+
+  if (!columns || typeof columns !== 'object' || Array.isArray(columns)) return false;
+  if (!tasks || typeof tasks !== 'object' || Array.isArray(tasks)) return false;
+  if (!Array.isArray(columnOrder) || columnOrder.length === 0) return false;
+
+  for (const columnId of columnOrder) {
+    const column = columns[columnId];
+    if (!column || column.id !== columnId || !Array.isArray(column.taskIds)) return false;
+  }
+
+  for (const task of Object.values(tasks)) {
+    if (
+      !task.id ||
+      typeof task.title !== 'string' ||
+      typeof task.description !== 'string' ||
+      !['low', 'medium', 'high'].includes(task.priority) ||
+      !columns[task.columnId]
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 interface KanbanActions {
   moveTask: (
     taskId: string,
@@ -64,12 +95,18 @@ interface KanbanActions {
   deleteColumn: (columnId: string) => void;
 }
 
-type KanbanStore = BoardState & KanbanActions;
+export type KanbanStore = BoardState & KanbanActions;
+
+const boardSlice = (state: KanbanStore): BoardState => ({
+  columns: state.columns,
+  tasks: state.tasks,
+  columnOrder: state.columnOrder,
+});
 
 export const useKanbanStore = create<KanbanStore>()(
   persist(
     (set) => ({
-      ...initialBoardState(),
+      ...createInitialBoardState(),
 
       moveTask: (taskId, sourceColId, destColId, sourceIndex, destIndex) => {
         set((state) => {
@@ -222,11 +259,20 @@ export const useKanbanStore = create<KanbanStore>()(
     }),
     {
       name: STORAGE_KEY,
-      partialize: (state) => ({
-        columns: state.columns,
-        tasks: state.tasks,
-        columnOrder: state.columnOrder,
-      }),
+      version: STORAGE_VERSION,
+      storage: kanbanPersistStorage,
+      partialize: boardSlice,
+      merge: (persisted, current) => {
+        if (!isValidBoardSlice(persisted)) {
+          return current;
+        }
+        return {
+          ...current,
+          columns: persisted.columns,
+          tasks: persisted.tasks,
+          columnOrder: persisted.columnOrder,
+        };
+      },
     },
   ),
 );

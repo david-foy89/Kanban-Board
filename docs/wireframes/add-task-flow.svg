@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 400" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Add task flow wireframe</title>
+  <desc id="desc">Flow from add task button to form submission</desc>
+  <rect width="720" height="400" fill="#fafafa"/>
+  <text x="24" y="32" font-family="system-ui,sans-serif" font-size="12" fill="#52525b" font-weight="600">ADD TASK FLOW</text>
+  <!-- Step 1 -->
+  <g transform="translate(24,52)">
+    <rect width="180" height="280" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="60" height="8" rx="2" fill="#71717a"/>
+    <rect x="12" y="240" width="156" height="28" rx="6" fill="#e4e4e7" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="90" y="258" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#7c3aed">+ Add task</text>
+    <text x="90" y="8" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">1 · idle</text>
+  </g>
+  <path d="M214 192 L248 192" stroke="#a1a1aa" stroke-width="2" marker-end="url(#arr)"/>
+  <!-- Step 2 -->
+  <g transform="translate(256,52)">
+    <rect width="180" height="280" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="60" height="8" rx="2" fill="#71717a"/>
+    <rect x="12" y="140" width="156" height="132" rx="6" fill="#fff" stroke="#8b5cf6"/>
+    <rect x="20" y="152" width="140" height="20" rx="3" fill="#fafafa" stroke="#d4d4d8"/>
+    <rect x="20" y="180" width="140" height="40" rx="3" fill="#fafafa" stroke="#d4d4d8"/>
+    <rect x="20" y="228" width="44" height="12" rx="2" fill="#ede9fe" stroke="#8b5cf6"/>
+    <rect x="68" y="228" width="44" height="12" rx="2" fill="#f4f4f5" stroke="#d4d4d8"/>
+    <rect x="116" y="228" width="44" height="12" rx="2" fill="#f4f4f5" stroke="#d4d4d8"/>
+    <text x="90" y="8" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">2 · form open</text>
+  </g>
+  <path d="M446 192 L480 192" stroke="#a1a1aa" stroke-width="2" marker-end="url(#arr)"/>
+  <!-- Step 3 -->
+  <g transform="translate(488,52)">
+    <rect width="180" height="280" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="60" height="8" rx="2" fill="#71717a"/>
+    <rect x="12" y="40" width="156" height="72" rx="6" fill="#fff" stroke="#22c55e" stroke-width="2"/>
+    <text x="90" y="84" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#16a34a">new card</text>
+    <rect x="12" y="240" width="156" height="28" rx="6" fill="#e4e4e7" stroke="#a1a1aa"/>
+    <text x="90" y="8" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">3 · task added</text>
+  </g>
+  <!-- Validation note -->
+  <rect x="24" y="352" width="672" height="36" rx="6" fill="#fff7ed" stroke="#fb923c"/>
+  <text x="40" y="374" font-family="system-ui,sans-serif" font-size="10" fill="#c2410c">Empty title ’ inline error · max 120 title / 500 description chars</text>
+  <defs>
+    <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#a1a1aa"/>
+    </marker>
+  </defs>
+</svg>

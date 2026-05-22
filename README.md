@@ -7,7 +7,7 @@ Portfolio-grade interactive Kanban board built with React, TypeScript, Tailwind 
 - Drag-and-drop tasks between columns
 - Add, edit, and delete tasks with priority badges
 - Add and delete columns (at least one column always remains)
-- Persistent state via `localStorage`
+- **Browser local storage** — every task/column change saves automatically to `localStorage` (key: `kanban-board-state`)
 - Accessible focus states and keyboard-friendly controls
 
 ## Getting started
@@ -40,6 +40,7 @@ This produces:
 - `dist/index.html` — entry page (with loading shell and meta tags)
 - `dist/404.html` — same file for GitHub Pages SPA routing
 - `dist/assets/` — bundled JS and CSS
+- `dist/docs/` — wireframes gallery (HTML + SVG)
 
 ### Preview locally before deploy
 
@@ -68,9 +69,26 @@ base: '/repo-name/',
 
 then rebuild.
 
+## Wireframes
+
+UI wireframes (SVG) document layout, flows, and component architecture:
+
+| Wireframe | File |
+|-----------|------|
+| Desktop board | `docs/wireframes/desktop-board.svg` |
+| Mobile board | `docs/wireframes/mobile-board.svg` |
+| Task card & edit | `docs/wireframes/task-card.svg` |
+| Add task flow | `docs/wireframes/add-task-flow.svg` |
+| Component tree | `docs/wireframes/architecture.svg` |
+
+**Browse all:** open [`docs/wireframes.html`](docs/wireframes.html) in a browser (also copied to `dist/docs/` on build). The live app header includes a **Wireframes** link after deploy.
+
 ## Project structure
 
 ```
+docs/
+├── wireframes.html
+└── wireframes/          # SVG wireframes
 src/
 ├── components/
 │   ├── Board.tsx

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Desktop board wireframe</title>
+  <desc id="desc">Kanban board with header and horizontally scrollable columns on desktop</desc>
+  <rect width="960" height="520" fill="#fafafa"/>
+  <!-- Header -->
+  <rect x="0" y="0" width="960" height="56" fill="#f4f4f5" stroke="#d4d4d8"/>
+  <rect x="32" y="18" width="140" height="12" rx="2" fill="#a1a1aa"/>
+  <rect x="32" y="34" width="220" height="8" rx="2" fill="#d4d4d8"/>
+  <text x="32" y="12" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">HEADER</text>
+  <!-- Board area -->
+  <rect x="24" y="72" width="912" height="428" rx="8" fill="#fff" stroke="#e4e4e7" stroke-dasharray="4 4"/>
+  <text x="32" y="88" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">BOARD (horizontal scroll)</text>
+  <!-- Column 1 -->
+  <g transform="translate(40,100)">
+    <rect width="200" height="380" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="80" height="10" rx="2" fill="#71717a"/>
+    <rect x="12" y="28" width="48" height="6" rx="2" fill="#d4d4d8"/>
+    <rect x="168" y="10" width="20" height="20" rx="4" fill="#e4e4e7" stroke="#a1a1aa"/>
+    <rect x="12" y="52" width="176" height="72" rx="6" fill="#fff" stroke="#d4d4d8"/>
+    <rect x="20" y="60" width="40" height="8" rx="4" fill="#d4d4d8"/>
+    <rect x="20" y="76" width="120" height="8" rx="2" fill="#a1a1aa"/>
+    <rect x="20" y="92" width="140" height="6" rx="2" fill="#e4e4e7"/>
+    <rect x="12" y="136" width="176" height="56" rx="6" fill="#fff" stroke="#d4d4d8" stroke-dasharray="6 4"/>
+    <text x="88" y="168" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#a1a1aa">empty state</text>
+    <rect x="12" y="340" width="176" height="28" rx="6" fill="#e4e4e7" stroke="#a1a1aa"/>
+    <text x="100" y="358" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">+ Add task</text>
+    <text x="12" y="8" font-family="system-ui,sans-serif" font-size="8" fill="#52525b" font-weight="600">To Do</text>
+  </g>
+  <!-- Column 2 -->
+  <g transform="translate(256,100)">
+    <rect width="200" height="380" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="96" height="10" rx="2" fill="#71717a"/>
+    <rect x="12" y="28" width="48" height="6" rx="2" fill="#d4d4d8"/>
+    <rect x="12" y="52" width="176" height="88" rx="6" fill="#fff" stroke="#8b5cf6" stroke-width="2"/>
+    <text x="100" y="100" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#7c3aed">dragging</text>
+    <rect x="12" y="152" width="176" height="72" rx="6" fill="#fff" stroke="#d4d4d8"/>
+    <rect x="12" y="340" width="176" height="28" rx="6" fill="#e4e4e7" stroke="#a1a1aa"/>
+    <text x="12" y="8" font-family="system-ui,sans-serif" font-size="8" fill="#52525b" font-weight="600">In Progress</text>
+  </g>
+  <!-- Column 3 -->
+  <g transform="translate(472,100)">
+    <rect width="200" height="380" rx="10" fill="#f4f4f5" stroke="#a1a1aa"/>
+    <rect x="12" y="12" width="48" height="10" rx="2" fill="#71717a"/>
+    <rect x="12" y="340" width="176" height="28" rx="6" fill="#e4e4e7" stroke="#a1a1aa"/>
+    <text x="12" y="8" font-family="system-ui,sans-serif" font-size="8" fill="#52525b" font-weight="600">Done</text>
+  </g>
+  <!-- Add column -->
+  <g transform="translate(688,100)">
+    <rect width="200" height="380" rx="10" fill="#fafafa" stroke="#a1a1aa" stroke-dasharray="8 6"/>
+    <text x="100" y="196" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#71717a">+ Add column</text>
+  </g>
+  <!-- Annotations -->
+  <path d="M880 120 L920 120" stroke="#8b5cf6" marker-end="url(#arrow)"/>
+  <text x="828" y="116" font-family="system-ui,sans-serif" font-size="9" fill="#7c3aed">288px col</text>
+  <defs>
+    <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#8b5cf6"/>
+    </marker>
+  </defs>
+</svg>

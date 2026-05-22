@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Generated from docs/ for Vite static assets
+public/docs
+
 # Editor
 .vscode/*
 !.vscode/extensions.json

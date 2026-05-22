@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 420" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Component architecture wireframe</title>
+  <desc id="desc">React component tree and Zustand store</desc>
+  <rect width="800" height="420" fill="#fafafa"/>
+  <text x="24" y="32" font-family="system-ui,sans-serif" font-size="12" fill="#52525b" font-weight="600">COMPONENT ARCHITECTURE</text>
+  <!-- App -->
+  <rect x="320" y="48" width="160" height="40" rx="6" fill="#ede9fe" stroke="#8b5cf6"/>
+  <text x="400" y="73" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#5b21b6">App</text>
+  <!-- Board -->
+  <rect x="300" y="108" width="200" height="40" rx="6" fill="#fff" stroke="#8b5cf6"/>
+  <text x="400" y="133" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#5b21b6">Board · DragDropContext</text>
+  <path d="M400 88 L400 108" stroke="#8b5cf6"/>
+  <!-- Columns row -->
+  <rect x="80" y="168" width="120" height="36" rx="6" fill="#f4f4f5" stroke="#a1a1aa"/>
+  <text x="140" y="191" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52525b">Column</text>
+  <rect x="220" y="168" width="120" height="36" rx="6" fill="#f4f4f5" stroke="#a1a1aa"/>
+  <text x="280" y="191" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52525b">Column</text>
+  <rect x="360" y="168" width="120" height="36" rx="6" fill="#f4f4f5" stroke="#a1a1aa"/>
+  <text x="420" y="191" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52525b">Column</text>
+  <rect x="500" y="168" width="140" height="36" rx="6" fill="#fafafa" stroke="#a1a1aa" stroke-dasharray="4 3"/>
+  <text x="570" y="191" text-anchor="middle" font-family="system-ui,sans-serif" font-size="10" fill="#52525b">NewColumnInput</text>
+  <path d="M400 148 L140 168 M400 148 L280 168 M400 148 L420 168 M400 148 L570 168" stroke="#d4d4d8"/>
+  <!-- TaskCard -->
+  <rect x="100" y="224" width="100" height="32" rx="6" fill="#fff" stroke="#d4d4d8"/>
+  <text x="150" y="245" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">TaskCard</text>
+  <rect x="240" y="224" width="100" height="32" rx="6" fill="#fff" stroke="#d4d4d8"/>
+  <text x="290" y="245" text-anchor="middle" font-family="system-ui,sans-serif" font-size="9" fill="#71717a">TaskCard</text>
+  <path d="M140 204 L150 224 M280 204 L290 224" stroke="#d4d4d8"/>
+  <!-- Children -->
+  <rect x="60" y="276" width="90" height="28" rx="4" fill="#ecfdf5" stroke="#22c55e"/>
+  <text x="105" y="294" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#166534">EmptyColumnState</text>
+  <rect x="170" y="276" width="70" height="28" rx="4" fill="#eff6ff" stroke="#3b82f6"/>
+  <text x="205" y="294" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#1d4ed8">TaskForm</text>
+  <path d="M150 256 L105 276 M150 256 L205 276" stroke="#d4d4d8"/>
+  <!-- Store -->
+  <rect x="560" y="260" width="200" height="100" rx="8" fill="#18181b"/>
+  <text x="660" y="288" text-anchor="middle" font-family="system-ui,sans-serif" font-size="11" fill="#fafafa">kanbanStore</text>
+  <text x="660" y="308" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#a1a1aa">Zustand + persist</text>
+  <text x="660" y="326" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#71717a">columns · tasks · columnOrder</text>
+  <text x="660" y="344" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" fill="#71717a">localStorage</text>
+  <path d="M400 128 L660 260" stroke="#8b5cf6" stroke-dasharray="4 3"/>
+  <text x="520" y="200" font-family="system-ui,sans-serif" font-size="8" fill="#7c3aed">useKanbanStore</text>
+</svg>
