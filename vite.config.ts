@@ -9,7 +9,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
-    open: '/',
+    open: '/index.html',
   },
   appType: 'spa',
   preview: {

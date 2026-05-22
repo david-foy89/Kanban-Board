@@ -18,8 +18,10 @@ export function LocalStorageBadge() {
   useEffect(() => {
     setSaved(readHasSavedData());
 
-    return useKanbanStore.subscribe(() => {
-      setSaved(readHasSavedData());
+    return useKanbanStore.subscribe((state, prev) => {
+      if (state === prev) return;
+      const next = readHasSavedData();
+      setSaved((current) => (current === next ? current : next));
     });
   }, []);
 

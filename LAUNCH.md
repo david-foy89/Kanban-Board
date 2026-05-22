@@ -1,41 +1,52 @@
-# Kanban Board — how to launch
+# Launch Kanban Board from index.html
 
-## Easiest way (Windows)
+`index.html` is the app entry. It **must** be opened through a local web server, not by double-clicking the file.
 
-**Double-click `start-dev.cmd`** in the project folder.
+## Recommended: development
 
-Keep that terminal window open. Your browser should open automatically. If not, use the URL shown in the terminal (usually **http://localhost:5173**).
+**Double-click `start-dev.cmd`** (Windows)
 
-## Manual way
+Or in a terminal:
 
 ```bash
-cd path\to\Kanban-Board
 npm install
 npm run dev
 ```
 
-Use the **exact URL** printed in the terminal. If you see `Port 5173 is in use`, Vite may use **5174** — open that URL instead.
+Then open exactly:
 
-## Do NOT do this
+**http://localhost:5173/index.html**
 
-- Do **not** double-click `index.html` — the app will not run (you will only see a spinner or an error message).
-- Do **not** guess the port — read it from the terminal.
+(`http://localhost:5173/` also works.)
 
-## Production preview
+Keep the terminal window open.
+
+## Built app (production index)
+
+**Double-click `open-index-built.cmd`**
+
+Or:
 
 ```bash
-npm run build
-npm run preview
+npm run serve:dist
 ```
 
-Open **http://localhost:4173** (or the URL shown).
+Then open **http://localhost:8080/index.html**
 
-## Still broken?
+## What does NOT work
+
+| Method | Why |
+|--------|-----|
+| Double-click `index.html` in Explorer | Browsers block React modules from `file://` |
+| VS Code "Live Server" on source folder | Does not compile TypeScript/React |
+| Wrong port (e.g. 5174 when server is on 5173) | Old tab or another app |
+
+If you double-click `index.html`, you will now see instructions on the page instead of an endless spinner.
+
+## Troubleshooting
 
 1. Close all old terminal windows running Vite.
-2. Run `npm install` again.
-3. Clear saved data: DevTools ? Application ? Local Storage ? delete `kanban-board-state`.
-4. Run `npm run dev` and open the new URL from the terminal.
-5. Press `Ctrl+Shift+R` for a hard refresh.
-
-If you see a red error box on the page, read the message — it usually means the dev server is not running.
+2. Run `npm run dev` again.
+3. Use the URL printed in the terminal.
+4. Clear `kanban-board-state` in DevTools ? Application ? Local Storage if you see an error screen.
+5. Hard refresh: `Ctrl+Shift+R`.

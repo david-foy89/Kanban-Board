@@ -13,7 +13,6 @@
     <meta name="theme-color" content="#09090b" />
     <meta name="color-scheme" content="dark" />
 
-    <!-- Open Graph (link previews when shared) -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Kanban Board" />
     <meta
@@ -23,10 +22,9 @@
     <meta property="og:locale" content="en_US" />
 
     <title>Kanban Board</title>
-    <link rel="icon" type="image/svg+xml" href="./vite.svg" />
-    <link rel="apple-touch-icon" href="./vite.svg" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="apple-touch-icon" href="/vite.svg" />
 
-    <!-- Initial shell styles (shown before React loads) -->
     <style>
       *,
       *::before,
@@ -98,6 +96,36 @@
         }
       }
 
+      .launch-help {
+        max-width: 28rem;
+        margin: 2rem auto;
+        padding: 1.5rem;
+        border: 1px solid #3f3f46;
+        border-radius: 0.75rem;
+        background: #18181b;
+        color: #e4e4e7;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+      }
+
+      .launch-help strong {
+        color: #fafafa;
+      }
+
+      .launch-help pre {
+        margin: 0.75rem 0;
+        padding: 0.75rem;
+        background: #09090b;
+        border-radius: 0.5rem;
+        color: #c4b5fd;
+        overflow: auto;
+      }
+
+      .launch-help p {
+        margin: 0.5rem 0 0;
+        color: #71717a;
+      }
+
       noscript {
         display: block;
         max-width: 28rem;
@@ -115,8 +143,7 @@
   </head>
   <body>
     <noscript>
-      <strong>JavaScript is required.</strong> Enable JavaScript in your browser to
-      run this Kanban board, or use a modern browser that supports ES modules.
+      <strong>JavaScript is required.</strong> Enable JavaScript to run this Kanban board.
     </noscript>
 
     <div id="root">
@@ -128,33 +155,69 @@
     </div>
 
     <script>
-      (function () {
-        if (location.protocol !== 'file:') return;
+      function showLaunchHelp(title, bodyHtml) {
         var root = document.getElementById('root');
         if (!root) return;
         root.innerHTML =
-          '<div style="max-width:28rem;margin:2rem auto;padding:1.5rem;border:1px solid #3f3f46;border-radius:0.75rem;background:#18181b;color:#e4e4e7;font-family:system-ui,sans-serif;font-size:0.9375rem;line-height:1.6">' +
-          '<strong style="color:#fafafa">Cannot run from a saved file</strong>' +
-          '<p style="margin:0.75rem 0 0;color:#a1a1aa">Open a terminal in the project folder and run:</p>' +
-          '<pre style="margin:0.75rem 0;padding:0.75rem;background:#09090b;border-radius:0.5rem;color:#c4b5fd;overflow:auto">npm install\nnpm run dev</pre>' +
-          '<p style="margin:0;color:#71717a">Then visit <strong style="color:#a78bfa">http://localhost:5173</strong></p>' +
+          '<div class="launch-help"><strong>' +
+          title +
+          '</strong>' +
+          bodyHtml +
           '</div>';
-      })();
+      }
+
+      function showFileHelp() {
+        showLaunchHelp(
+          'Open index.html through the dev server',
+          '<p>This app cannot run when the HTML file is opened directly from your computer.</p>' +
+            '<pre>npm install\nnpm run dev</pre>' +
+            '<p>Then open <strong style="color:#a78bfa">http://localhost:5173/index.html</strong></p>' +
+            '<p>Or double-click <strong>start-dev.cmd</strong> in this folder.</p>',
+        );
+      }
+
+      function showLoadTimeoutHelp() {
+        showLaunchHelp(
+          'App did not start',
+          '<p>The dev server may not be running, or the wrong URL is open.</p>' +
+            '<pre>npm run dev</pre>' +
+            '<p>Use the URL from the terminal, for example:<br><strong style="color:#a78bfa">http://localhost:5173/index.html</strong></p>' +
+            '<p>Do not use Live Server or open the file from Explorer.</p>',
+        );
+      }
+
+      function showScriptError(message) {
+        showLaunchHelp(
+          'Script failed to load',
+          '<p style="color:#fca5a5;word-break:break-word">' +
+            message +
+            '</p>' +
+            '<pre>npm run dev</pre>' +
+            '<p>Then open <strong style="color:#a78bfa">http://localhost:5173/index.html</strong></p>',
+        );
+      }
+
+      window.__kanbanShowScriptError = showScriptError;
     </script>
-    <!-- Entry: loads from / and /index.html when using npm run dev or a static host -->
-    <script type="module" src="./src/main.tsx"></script>
-    <script>
-      window.addEventListener('error', function (e) {
-        if (e.filename && e.filename.indexOf('main') === -1) return;
-        var root = document.getElementById('root');
-        if (!root || root.querySelector('[data-react-mounted]')) return;
-        var msg = (e.error && e.error.message) || e.message || 'Unknown error';
-        root.innerHTML =
-          '<div style="max-width:32rem;margin:2rem auto;padding:1.5rem;border:1px solid #7f1d1d;border-radius:0.75rem;background:#18181b;font-family:system-ui,sans-serif">' +
-          '<strong style="color:#fafafa">Script failed to load</strong>' +
-          '<p style="color:#fca5a5;margin:0.75rem 0 0;word-break:break-word">' + msg + '</p>' +
-          '<p style="color:#71717a;margin:1rem 0 0;font-size:0.85rem">Run <code style="color:#c4b5fd">npm run dev</code> in this project folder (or double-click <code style="color:#c4b5fd">start-dev.cmd</code>).</p></div>';
-      });
+
+    <!-- Vite processes this import on build; dev server compiles /src/main.tsx -->
+    <script type="module">
+      if (location.protocol === 'file:') {
+        showFileHelp();
+      } else {
+        import('/src/main.tsx').catch(function (err) {
+          var msg = err && err.message ? err.message : String(err);
+          if (window.__kanbanShowScriptError) {
+            window.__kanbanShowScriptError(msg);
+          }
+        });
+
+        window.setTimeout(function () {
+          if (!document.querySelector('[data-react-mounted]')) {
+            showLoadTimeoutHelp();
+          }
+        }, 15000);
+      }
     </script>
   </body>
 </html>
