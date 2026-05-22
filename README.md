@@ -7,7 +7,7 @@ Portfolio-grade interactive Kanban board built with React, TypeScript, Tailwind 
 - Drag-and-drop tasks between columns
 - Add, edit, and delete tasks with priority badges
 - Add and delete columns (at least one column always remains)
-- **Browser local storage** — every task/column change saves automatically to `localStorage` (key: `kanban-board-state`)
+- **Browser local storage** - every task/column change saves automatically to `localStorage` (key: `kanban-board-state`)
 - Accessible focus states and keyboard-friendly controls
 
 ## Getting started
@@ -19,7 +19,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-> **Important:** Run `npm run dev` and use the URL above. Do not open `index.html` directly in the browser (file://) — the app needs the Vite dev server or a production build in `dist/`.
+> **Important:** Run `npm run dev` and use the URL above. Do not open `index.html` directly in the browser (file://) - the app needs the Vite dev server or a production build in `dist/`.
 
 ## Scripts
 
@@ -58,18 +58,22 @@ Open the URL shown (usually http://localhost:4173).
 |------|----------------|
 | **Netlify / Cloudflare Pages** | Connect repo or drag-drop `dist/` |
 | **Vercel** | Root directory: project root; build: `npm run build`; output: `dist` |
-| **GitHub Pages** | Upload `dist/` contents, or use Actions with `publish_dir: dist` |
+| **GitHub Pages** | Use the included GitHub Actions workflow (see below) |
 | **Any web server** | Copy `dist/` to `public_html` / `www` |
 
-`public/_redirects` (Netlify) and `public/.nojekyll` (GitHub Pages) are included automatically in the build.
+`public/_redirects` (Netlify) and `dist/.nojekyll` (GitHub Pages) are included automatically in the build.
 
-For a **project site** at `https://user.github.io/repo-name/`, set in `vite.config.ts`:
+### GitHub Pages (fix Jekyll build errors)
 
-```ts
-base: '/repo-name/',
-```
+This repo is a **Vite/React app**, not a Jekyll site. Do **not** use "Deploy from a branch" with Jekyll on the repository root.
 
-then rebuild.
+1. Push these changes to `main`.
+2. On GitHub: **Settings** -> **Pages** -> **Build and deployment**
+3. Set **Source** to **GitHub Actions** (not "Deploy from a branch").
+4. The workflow `.github/workflows/deploy-pages.yml` builds `dist/` and deploys it.
+5. Your site will be at `https://<username>.github.io/<repo-name>/` (includes `index.html`).
+
+The CI build sets `VITE_BASE_PATH` automatically for your repository name.
 
 ## Wireframes
 

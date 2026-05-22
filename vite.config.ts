@@ -2,9 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 
+// GitHub Actions sets VITE_BASE_PATH=/RepoName/ for project pages
+const base = process.env.VITE_BASE_PATH ?? './';
+
 export default defineConfig({
-  // Relative asset paths — works on GitHub Pages, subfolders, and static hosts
-  base: './',
+  base,
   plugins: [react(), tailwindcss()],
   server: {
     port: 5173,

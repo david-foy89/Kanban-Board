@@ -48,5 +48,5 @@ If you double-click `index.html`, you will now see instructions on the page inst
 1. Close all old terminal windows running Vite.
 2. Run `npm run dev` again.
 3. Use the URL printed in the terminal.
-4. Clear `kanban-board-state` in DevTools ? Application ? Local Storage if you see an error screen.
+4. Clear `kanban-board-state` in DevTools -> Application -> Local Storage if you see an error screen.
 5. Hard refresh: `Ctrl+Shift+R`.
