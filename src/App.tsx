@@ -1,13 +1,9 @@
 import { Board } from './components/Board';
-import { BoardLoading } from './components/BoardLoading';
 import { LocalStorageBadge } from './components/LocalStorageBadge';
-import { useKanbanHydration } from './hooks/useKanbanHydration';
 
 function App() {
-  const hydrated = useKanbanHydration();
-
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col" data-react-mounted>
       <header className="shrink-0 border-b border-zinc-800/80 bg-zinc-950/80 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5">
         <div className="mx-auto flex max-w-[100rem] items-center justify-between gap-3 sm:gap-4">
           <div className="min-w-0">
@@ -33,7 +29,7 @@ function App() {
         </div>
       </header>
       <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        {hydrated ? <Board /> : <BoardLoading />}
+        <Board />
       </main>
     </div>
   );
