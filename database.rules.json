@@ -1,0 +1,18 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomId": {
+        ".read": true,
+        ".write": true,
+        "workspace": {
+          ".validate": "newData.hasChildren(['v', 'clientId', 'ts', 'data'])"
+        },
+        "presence": {
+          "$clientId": {
+            ".write": true
+          }
+        }
+      }
+    }
+  }
+}

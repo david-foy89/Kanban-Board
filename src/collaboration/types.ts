@@ -10,7 +10,7 @@ export interface CollabPayload {
 export type CollabStatus = 'idle' | 'connecting' | 'connected' | 'disconnected';
 
 /** How updates travel between clients. */
-export type CollabTransport = 'websocket' | 'broadcast' | 'none';
+export type CollabTransport = 'firebase' | 'none';
 
 export interface CollabState {
   roomId: string | null;

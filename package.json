@@ -4,10 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "node scripts/dev-with-collab.mjs",
-    "dev": "node scripts/dev-with-collab.mjs",
-    "dev:app": "node scripts/sync-docs.mjs && vite",
-    "collab:server": "npx y-websocket-server",
+    "start": "node scripts/sync-docs.mjs && vite",
+    "dev": "node scripts/sync-docs.mjs && vite",
     "build": "node scripts/sync-docs.mjs && tsc -b && vite build && node scripts/postbuild.mjs",
     "lint": "eslint .",
     "preview": "vite preview --open /index.html",
@@ -15,10 +13,9 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "firebase": "^12.15.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "y-websocket": "^3.0.0",
-    "yjs": "^13.6.31",
     "zustand": "^5.0.5"
   },
   "devDependencies": {
@@ -28,7 +25,6 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
-    "@y/websocket-server": "^0.1.5",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",

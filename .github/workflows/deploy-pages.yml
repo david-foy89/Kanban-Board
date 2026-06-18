@@ -33,10 +33,12 @@ jobs:
       - name: Build for GitHub Pages
         run: npm run build
         env:
-          # Project site: https://<user>.github.io/<repo>/
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
-          # Set repo variable COLLAB_WS_URL (e.g. wss://kanban-board-collab.fly.dev)
-          VITE_COLLAB_WS_URL: ${{ vars.COLLAB_WS_URL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_DATABASE_URL: ${{ vars.FIREBASE_DATABASE_URL }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -75,35 +75,53 @@ This repo is a **Vite/React app**, not a Jekyll site. Do **not** use "Deploy fro
 
 The CI build sets `VITE_BASE_PATH` automatically for your repository name.
 
-### Live share on GitHub Pages
+### Live share (Firebase Realtime Database)
 
-GitHub Pages only hosts static files — it cannot run the WebSocket server live sync needs. To enable **Share live** on your published site:
+Live collaboration uses **Firebase Realtime Database** — no Fly.io or WebSocket server required. GitHub Pages stays static; Firebase handles sync.
 
-1. **Deploy the sync server** (pick one):
+#### 1. Create a Firebase project
 
-   **Fly.io** (recommended, free tier):
+1. Go to [console.firebase.google.com](https://console.firebase.google.com) and create a project (Spark/free plan is fine).
+2. **Build → Realtime Database → Create database** (choose a region, start in **test mode** for setup).
+3. **Project settings → Your apps → Web** → register the app and copy the config values.
 
-   ```bash
-   cd collab-server
-   fly launch          # create app (e.g. kanban-board-collab)
-   fly deploy
-   ```
+#### 2. Deploy database rules
 
-   **Render** (free tier): connect this repo at [render.com](https://render.com) — it uses the included `render.yaml`.
+In the Firebase console → Realtime Database → **Rules**, paste the contents of [`database.rules.json`](database.rules.json) from this repo, then **Publish**.
 
-2. **Note your WebSocket URL** — e.g. `wss://kanban-board-collab.fly.dev` (no trailing slash, no `/ws` path).
+Or with Firebase CLI:
 
-3. **Set a GitHub repository variable** (not a secret):
+```bash
+npm install -g firebase-tools
+firebase login
+firebase init database   # select your project, use database.rules.json
+firebase deploy --only database
+```
 
-   - Repo **Settings** → **Secrets and variables** → **Actions** → **Variables**
-   - Name: `COLLAB_WS_URL`
-   - Value: `wss://your-collab-server.example.com`
+#### 3. Local development
 
-4. **Re-run the Pages deploy** — push to `main` or use **Actions** → **Deploy to GitHub Pages** → **Run workflow**.
+Copy `.env.example` to `.env.local` and fill in your Firebase values:
 
-Local dev still uses `ws://localhost:1234` automatically (`npm run dev` starts both servers).
+```bash
+cp .env.example .env.local
+npm run dev
+```
 
-Optional: add GitHub secret `FLY_API_TOKEN` to auto-deploy `collab-server/` on push (see `.github/workflows/deploy-collab.yml`).
+#### 4. GitHub Pages (production)
+
+Add these **repository variables** (Settings → Secrets and variables → Actions → **Variables**):
+
+| Variable | Example |
+|----------|---------|
+| `FIREBASE_API_KEY` | `AIza...` |
+| `FIREBASE_AUTH_DOMAIN` | `my-project.firebaseapp.com` |
+| `FIREBASE_DATABASE_URL` | `https://my-project-default-rtdb.firebaseio.com` |
+| `FIREBASE_PROJECT_ID` | `my-project-id` |
+| `FIREBASE_APP_ID` | `1:123456789:web:abc...` |
+
+Push to `main` or re-run **Deploy to GitHub Pages**. Share links work across phones, laptops, and browsers.
+
+> **Note:** Firebase web API keys are designed to be public; protect your data with Realtime Database rules (see `database.rules.json`).
 
 ## Wireframes
 

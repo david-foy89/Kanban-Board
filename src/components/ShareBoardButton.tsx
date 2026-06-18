@@ -4,7 +4,6 @@ import {
   getRoomIdFromUrl,
   isCollabHost,
   isCollabServerConfigured,
-  isProductionWithoutCollabServer,
   navigateToRoom,
   startCollabSession,
   startNewShareSession,
@@ -19,7 +18,10 @@ export function ShareBoardButton() {
 
   const handleShare = async () => {
     if (!isCollabServerConfigured()) {
-      showToast('Sync not available in this browser.', 'info');
+      showToast(
+        'Firebase is not configured. Add VITE_FIREBASE_* to .env.local or GitHub Actions variables.',
+        'info',
+      );
       return;
     }
 
@@ -40,11 +42,7 @@ export function ShareBoardButton() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      if (isProductionWithoutCollabServer()) {
-        showToast('Link copied — opens in another tab on this device (same browser)');
-      } else {
-        showToast('Share link copied — anyone with the link can edit live');
-      }
+      showToast('Share link copied — anyone with the link can edit live');
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast('Copy this link to share: ' + url, 'info');
@@ -55,13 +53,9 @@ export function ShareBoardButton() {
     collab.status === 'connecting'
       ? 'Connecting...'
       : collab.status === 'connected'
-        ? collab.transport === 'broadcast' && isProductionWithoutCollabServer()
-          ? collab.peerCount > 0
-            ? `${collab.peerCount + 1} tabs`
-            : 'Same browser'
-          : collab.peerCount > 0
-            ? `${collab.peerCount + 1} editing`
-            : 'Link ready'
+        ? collab.peerCount > 0
+          ? `${collab.peerCount + 1} editing`
+          : 'Link ready'
         : collab.status === 'disconnected' && collab.roomId
           ? 'Offline'
           : null;
@@ -71,11 +65,7 @@ export function ShareBoardButton() {
       type="button"
       onClick={handleShare}
       className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:border-violet-500/60 hover:bg-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500/30 sm:text-sm"
-      title={
-        isProductionWithoutCollabServer()
-          ? 'Share link syncs across tabs in the same browser. Deploy collab-server for cross-device sync.'
-          : 'Create a link others can use to edit this board in real time'
-      }
+      title="Create a link others can use to edit this board in real time (Firebase sync)"
     >
       <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
         <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />

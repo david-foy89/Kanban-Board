@@ -1,5 +1,13 @@
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
+import {
+  get,
+  onDisconnect,
+  onValue,
+  ref,
+  remove,
+  set,
+  type Database,
+  type Unsubscribe,
+} from 'firebase/database';
 import type { CollabPayload, CollabState, CollabStatus } from './types';
 import { COLLAB_HOST_PARAM, COLLAB_QUERY_PARAM } from './types';
 import {
@@ -9,27 +17,21 @@ import {
   useKanbanStore,
 } from '../store/kanbanStore';
 import { createId } from '../utils/id';
-import {
-  isCollabServerConfigured,
-  isProductionWithoutCollabServer,
-  resolveCollabWsUrl,
-  supportsBroadcastChannelSync,
-} from './collabConfig';
+import { getFirebaseDatabase, isFirebaseConfigured } from './firebaseConfig';
 
-const LOCAL_ORIGIN = 'kanban-local';
 const HOST_ROOM_KEY = 'kanban-collab-host-room';
-const PAYLOAD_KEY = 'workspace';
 const SEED_DELAY_MS = 400;
 
-let ydoc: Y.Doc | null = null;
-let provider: WebsocketProvider | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let seedTimer: ReturnType<typeof setTimeout> | null = null;
-let pollTimer: ReturnType<typeof setInterval> | null = null;
-let lastPushedJson = '';
+let lastPushedTs = 0;
 let lastAppliedTs = 0;
 let canPushLocal = false;
 let unsubscribeStore: (() => void) | null = null;
+let workspaceUnsub: Unsubscribe | null = null;
+let presenceUnsub: Unsubscribe | null = null;
+let activeDb: Database | null = null;
+let activeRoomId: string | null = null;
 let stateListeners = new Set<(state: CollabState) => void>();
 
 const collabState: CollabState = {
@@ -40,8 +42,10 @@ const collabState: CollabState = {
   transport: 'none',
 };
 
-function unwrapEvent<T>(event: T | T[]): T {
-  return Array.isArray(event) ? event[0] : event;
+export { isFirebaseConfigured as isCollabConfigured };
+
+export function isCollabServerConfigured(): boolean {
+  return isFirebaseConfigured();
 }
 
 function getClientId(): string {
@@ -52,12 +56,6 @@ function getClientId(): string {
   sessionStorage.setItem('kanban-collab-client-id', clientId);
   return clientId;
 }
-
-function getCollabWsUrl(): string | null {
-  return resolveCollabWsUrl();
-}
-
-export { isCollabServerConfigured, isProductionWithoutCollabServer };
 
 function emitState() {
   for (const listener of stateListeners) {
@@ -81,6 +79,18 @@ function markRoomHost(roomId: string): void {
   sessionStorage.setItem(HOST_ROOM_KEY, roomId);
 }
 
+function workspaceRef(db: Database, roomId: string) {
+  return ref(db, `rooms/${roomId}/workspace`);
+}
+
+function presenceRootRef(db: Database, roomId: string) {
+  return ref(db, `rooms/${roomId}/presence`);
+}
+
+function clientPresenceRef(db: Database, roomId: string, clientId: string) {
+  return ref(db, `rooms/${roomId}/presence/${clientId}`);
+}
+
 function buildPayload(): CollabPayload {
   return {
     v: 1,
@@ -90,76 +100,35 @@ function buildPayload(): CollabPayload {
   };
 }
 
-function readPayloadJson(): string | null {
-  if (!ydoc) return null;
-  const json = ydoc.getMap(PAYLOAD_KEY).get('json');
-  return typeof json === 'string' && json.length > 0 ? json : null;
+function applyRemotePayload(payload: CollabPayload | null) {
+  if (!payload || payload.v !== 1 || !payload.data?.projects) return;
+
+  const isOwn = payload.clientId === getClientId();
+  if (isOwn && payload.ts <= lastAppliedTs) return;
+  if (payload.ts <= lastAppliedTs) return;
+
+  lastAppliedTs = payload.ts;
+  applyRemoteWorkspace(payload.data);
+  canPushLocal = true;
 }
 
-function pushLocalState(force = false) {
-  if (!ydoc || isApplyingRemoteUpdate()) return;
+async function pushLocalState(force = false) {
+  if (!activeDb || !activeRoomId || isApplyingRemoteUpdate()) return;
   if (!force && !canPushLocal) return;
 
   const payload = buildPayload();
-  const json = JSON.stringify(payload);
-  if (json === lastPushedJson) return;
+  if (!force && payload.ts <= lastPushedTs) return;
 
-  lastPushedJson = json;
-  lastAppliedTs = payload.ts;
-
-  ydoc.transact(() => {
-    ydoc!.getMap(PAYLOAD_KEY).set('json', json);
-  }, LOCAL_ORIGIN);
+  lastPushedTs = payload.ts;
+  await set(workspaceRef(activeDb, activeRoomId), payload);
 }
 
 function schedulePush() {
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
     pushTimer = null;
-    pushLocalState();
-  }, 80);
-}
-
-function applyRemoteJson(json: string) {
-  if (!json) return;
-
-  let payload: CollabPayload;
-  try {
-    payload = JSON.parse(json) as CollabPayload;
-  } catch {
-    return;
-  }
-
-  if (payload.v !== 1 || !payload.data?.projects) return;
-
-  const isOwnPayload = payload.clientId === getClientId();
-  if (isOwnPayload && payload.ts <= lastAppliedTs && json === lastPushedJson) return;
-  if (json === lastPushedJson && payload.ts <= lastAppliedTs) return;
-
-  lastPushedJson = json;
-  lastAppliedTs = payload.ts;
-  applyRemoteWorkspace(payload.data);
-  canPushLocal = true;
-}
-
-function pullRemoteState() {
-  const json = readPayloadJson();
-  if (json) applyRemoteJson(json);
-}
-
-function maybeSeedLocalState(roomId: string) {
-  if (!ydoc) return;
-
-  const existing = readPayloadJson();
-  if (existing) {
-    applyRemoteJson(existing);
-    return;
-  }
-
-  if (isRoomHost(roomId)) {
-    canPushLocal = true;
-    pushLocalState(true);
-  }
+    void pushLocalState();
+  }, 120);
 }
 
 function attachStoreSync() {
@@ -182,9 +151,22 @@ function detachStoreSync() {
     clearTimeout(seedTimer);
     seedTimer = null;
   }
-  if (pollTimer) {
-    clearInterval(pollTimer);
-    pollTimer = null;
+}
+
+async function maybeSeedLocalState(roomId: string) {
+  if (!activeDb) return;
+
+  const snap = await get(workspaceRef(activeDb, roomId));
+  const existing = snap.val() as CollabPayload | null;
+
+  if (existing) {
+    applyRemotePayload(existing);
+    return;
+  }
+
+  if (isRoomHost(roomId)) {
+    canPushLocal = true;
+    await pushLocalState(true);
   }
 }
 
@@ -233,126 +215,98 @@ export function isCollabActive(): boolean {
   return collabState.roomId !== null;
 }
 
-function wireDocSync(ymap: Y.Map<unknown>) {
-  ymap.observe((event) => {
-    if (event.transaction.origin === LOCAL_ORIGIN) return;
-    pullRemoteState();
-  });
+async function startCollabSessionAsync(roomId: string): Promise<void> {
+  if (collabState.roomId === roomId && workspaceUnsub) return;
 
-  ydoc!.on('update', (_update, origin) => {
-    if (origin === LOCAL_ORIGIN) return;
-    pullRemoteState();
-  });
-
-  pollTimer = setInterval(pullRemoteState, 1000);
-
-  if (provider) {
-    provider.awareness.on('change', () => {
-      if (!provider) return;
-      collabState.peerCount = Math.max(0, provider.awareness.getStates().size - 1);
-      emitState();
-    });
-  }
-
-  attachStoreSync();
-}
-
-function startBroadcastOnlySession(roomId: string, roomName: string) {
-  collabState.transport = 'broadcast';
-  collabState.synced = true;
-  setCollabStatus('connected');
-
-  // Dummy URL  WebSocket is never opened; tabs sync via BroadcastChannel.
-  provider = new WebsocketProvider('ws://127.0.0.1:1', roomName, ydoc!, { connect: false });
-  provider.connectBc();
-  wireDocSync(ydoc!.getMap(PAYLOAD_KEY));
-  seedTimer = setTimeout(() => {
-    seedTimer = null;
-    maybeSeedLocalState(roomId);
-  }, SEED_DELAY_MS);
-  emitState();
-}
-
-function startWebSocketSession(roomId: string, roomName: string, wsUrl: string) {
-  collabState.transport = 'websocket';
-
-  provider = new WebsocketProvider(wsUrl, roomName, ydoc!, {
-    connect: true,
-    resyncInterval: 3000,
-  });
-
-  provider.on('status', (event) => {
-    const { status } = unwrapEvent(event);
-
-    if (status === 'connected') {
-      setCollabStatus('connected');
-      pullRemoteState();
-      if (seedTimer) clearTimeout(seedTimer);
-      seedTimer = setTimeout(() => {
-        seedTimer = null;
-        maybeSeedLocalState(roomId);
-      }, SEED_DELAY_MS);
-    } else if (status === 'connecting') {
-      setCollabStatus('connecting');
-    } else if (status === 'disconnected') {
-      setCollabStatus('disconnected');
-    }
-  });
-
-  provider.on('connection-error', () => {
-    setCollabStatus('disconnected');
-  });
-
-  provider.on('sync', (isSynced) => {
-    collabState.synced = unwrapEvent(isSynced);
-    emitState();
-    if (collabState.synced) pullRemoteState();
-  });
-
-  wireDocSync(ydoc!.getMap(PAYLOAD_KEY));
-  emitState();
-}
-
-export function startCollabSession(roomId: string): void {
-  if (collabState.roomId === roomId && provider) return;
-
-  stopCollabSession();
-
-  const wsUrl = getCollabWsUrl();
-  const roomName = `kanban-board-${roomId}`;
+  await stopCollabSession();
 
   collabState.roomId = roomId;
   collabState.synced = false;
   collabState.peerCount = 0;
   collabState.transport = 'none';
 
-  if (!wsUrl && !supportsBroadcastChannelSync()) {
+  if (!isFirebaseConfigured()) {
     setCollabStatus('disconnected');
     emitState();
     return;
   }
 
+  const db = getFirebaseDatabase();
+  if (!db) {
+    setCollabStatus('disconnected');
+    emitState();
+    return;
+  }
+
+  activeDb = db;
+  activeRoomId = roomId;
+  collabState.transport = 'firebase';
   setCollabStatus('connecting');
+
   canPushLocal = isRoomHost(roomId);
   lastAppliedTs = 0;
-  lastPushedJson = '';
+  lastPushedTs = 0;
 
-  ydoc = new Y.Doc();
+  const clientId = getClientId();
+  const myPresence = clientPresenceRef(db, roomId, clientId);
 
-  if (wsUrl) {
-    startWebSocketSession(roomId, roomName, wsUrl);
-  } else {
-    startBroadcastOnlySession(roomId, roomName);
+  try {
+    await set(myPresence, { at: Date.now() });
+    onDisconnect(myPresence).remove();
+
+    presenceUnsub = onValue(presenceRootRef(db, roomId), (snap) => {
+      const val = snap.val() as Record<string, unknown> | null;
+      collabState.peerCount = val ? Math.max(0, Object.keys(val).length - 1) : 0;
+      emitState();
+    });
+
+    workspaceUnsub = onValue(workspaceRef(db, roomId), (snap) => {
+      applyRemotePayload(snap.val() as CollabPayload | null);
+      collabState.synced = true;
+      if (collabState.status !== 'connected') setCollabStatus('connected');
+      emitState();
+    });
+
+    attachStoreSync();
+
+    seedTimer = setTimeout(() => {
+      seedTimer = null;
+      void maybeSeedLocalState(roomId);
+    }, SEED_DELAY_MS);
+
+    setCollabStatus('connected');
+    collabState.synced = true;
+    emitState();
+  } catch (error) {
+    console.error('[Kanban] Firebase collab failed:', error);
+    setCollabStatus('disconnected');
+    emitState();
   }
 }
 
-export function stopCollabSession(): void {
+export function startCollabSession(roomId: string): void {
+  void startCollabSessionAsync(roomId);
+}
+
+export async function stopCollabSession(): Promise<void> {
   detachStoreSync();
-  provider?.destroy();
-  provider = null;
-  ydoc?.destroy();
-  ydoc = null;
-  lastPushedJson = '';
+
+  if (activeDb && activeRoomId) {
+    try {
+      await remove(clientPresenceRef(activeDb, activeRoomId, getClientId()));
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+
+  workspaceUnsub?.();
+  presenceUnsub?.();
+  workspaceUnsub = null;
+  presenceUnsub = null;
+  activeDb = null;
+  activeRoomId = null;
+
+  lastPushedTs = 0;
   lastAppliedTs = 0;
   canPushLocal = false;
   collabState.roomId = null;

@@ -1,4 +1,5 @@
-import { buildShareUrl, isProductionWithoutCollabServer } from '../collaboration/collabSession';
+import { buildShareUrl } from '../collaboration/collabSession';
+import { isFirebaseConfigured } from '../collaboration/firebaseConfig';
 import { useCollaboration } from '../collaboration/CollaborationProvider';
 import { useToast } from './Toast';
 
@@ -18,25 +19,22 @@ export function CollabBanner() {
     }
   };
 
-  const editors =
-    collab.transport === 'broadcast' && isProductionWithoutCollabServer()
+  const editors = !isFirebaseConfigured()
+    ? 'Firebase not configured — add VITE_FIREBASE_* env vars (see README)'
+    : collab.status === 'connected'
       ? collab.peerCount > 0
-        ? `${collab.peerCount + 1} tabs in this browser`
-        : 'Same-browser sync — open this link in another tab'
-      : collab.status === 'connected'
-        ? collab.peerCount > 0
-          ? `${collab.peerCount + 1} people editing`
-          : 'Waiting for others to join'
-        : collab.status === 'disconnected'
-          ? 'Sync server offline — deploy collab-server or use two tabs locally'
-          : 'Connecting to live session...';
+        ? `${collab.peerCount + 1} people editing`
+        : 'Waiting for others to join'
+      : collab.status === 'disconnected'
+        ? 'Firebase connection failed — check database rules and env vars'
+        : 'Connecting to live session...';
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-200 sm:px-6 sm:text-sm print:hidden">
       <div className="flex items-center gap-2">
         <span
           className={`h-2 w-2 rounded-full ${
-            collab.status === 'disconnected'
+            collab.status === 'disconnected' || !isFirebaseConfigured()
               ? 'bg-red-400 animate-pulse'
               : collab.status === 'connected'
                 ? 'bg-emerald-400 animate-pulse'
