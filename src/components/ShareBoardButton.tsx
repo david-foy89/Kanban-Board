@@ -2,21 +2,28 @@ import { useState } from 'react';
 import {
   buildShareUrl,
   getRoomIdFromUrl,
+  getShareScope,
   isCollabHost,
   isCollabServerConfigured,
   navigateToRoom,
   startCollabSession,
   startNewShareSession,
+  updateShareScope,
 } from '../collaboration/collabSession';
+import { defaultShareScope } from '../collaboration/shareScope';
+import type { ShareScope } from '../collaboration/types';
 import { useCollaboration } from '../collaboration/CollaborationProvider';
+import { useKanbanStore } from '../store/kanbanStore';
+import { ShareBoardDialog } from './ShareBoardDialog';
 import { useToast } from './Toast';
 
 export function ShareBoardButton() {
   const collab = useCollaboration();
   const { showToast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleShare = async () => {
+  const handleOpenShare = () => {
     if (!isCollabServerConfigured()) {
       showToast(
         'Firebase is not configured. Add VITE_FIREBASE_* to .env.local or GitHub Actions variables.',
@@ -24,21 +31,10 @@ export function ShareBoardButton() {
       );
       return;
     }
+    setDialogOpen(true);
+  };
 
-    let url: string;
-
-    const existingRoom = getRoomIdFromUrl();
-    if (existingRoom) {
-      if (!collab.roomId) {
-        navigateToRoom(existingRoom, isCollabHost());
-        startCollabSession(existingRoom);
-      }
-      url = buildShareUrl(existingRoom);
-    } else {
-      startNewShareSession();
-      url = buildShareUrl(getRoomIdFromUrl()!);
-    }
-
+  const copyUrl = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
@@ -48,6 +44,36 @@ export function ShareBoardButton() {
       showToast('Copy this link to share: ' + url, 'info');
     }
   };
+
+  const handleConfirmShare = async (scope: ShareScope) => {
+    setDialogOpen(false);
+
+    const existingRoom = getRoomIdFromUrl();
+
+    if (existingRoom && collab.roomId) {
+      if (isCollabHost()) {
+        await updateShareScope(scope);
+      }
+      await copyUrl(buildShareUrl(existingRoom));
+      return;
+    }
+
+    if (existingRoom) {
+      navigateToRoom(existingRoom, isCollabHost());
+      startCollabSession(existingRoom);
+      if (isCollabHost()) {
+        await updateShareScope(scope);
+      }
+      await copyUrl(buildShareUrl(existingRoom));
+      return;
+    }
+
+    const url = startNewShareSession(scope);
+    await copyUrl(url);
+  };
+
+  const initialScope =
+    getShareScope() ?? defaultShareScope(useKanbanStore.getState());
 
   const statusLabel =
     collab.status === 'connecting'
@@ -61,28 +87,37 @@ export function ShareBoardButton() {
           : null;
 
   return (
-    <button
-      type="button"
-      onClick={handleShare}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:border-violet-500/60 hover:bg-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500/30 sm:text-sm"
-      title="Create a link others can use to edit this board in real time (Firebase sync)"
-    >
-      <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
-        <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-      </svg>
-      <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share live'}</span>
-      <span className="sm:hidden">{copied ? 'Copied' : 'Share'}</span>
-      {statusLabel && collab.roomId && (
-        <span
-          className={`hidden rounded-full px-1.5 py-0.5 text-[10px] lg:inline ${
-            collab.status === 'connected'
-              ? 'bg-emerald-500/20 text-emerald-400'
-              : 'bg-red-500/20 text-red-400'
-          }`}
-        >
-          {statusLabel}
-        </span>
-      )}
-    </button>
+    <>
+      <button
+        type="button"
+        onClick={handleOpenShare}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:border-violet-500/60 hover:bg-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500/30 sm:text-sm"
+        title="Choose boards to share and copy a live collaboration link"
+      >
+        <svg className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+          <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
+        </svg>
+        <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share live'}</span>
+        <span className="sm:hidden">{copied ? 'Copied' : 'Share'}</span>
+        {statusLabel && collab.roomId && (
+          <span
+            className={`hidden rounded-full px-1.5 py-0.5 text-[10px] lg:inline ${
+              collab.status === 'connected'
+                ? 'bg-emerald-500/20 text-emerald-400'
+                : 'bg-red-500/20 text-red-400'
+            }`}
+          >
+            {statusLabel}
+          </span>
+        )}
+      </button>
+
+      <ShareBoardDialog
+        open={dialogOpen}
+        initialScope={initialScope}
+        onClose={() => setDialogOpen(false)}
+        onConfirm={handleConfirmShare}
+      />
+    </>
   );
 }

@@ -18,7 +18,17 @@ export interface CollabState {
   peerCount: number;
   synced: boolean;
   transport: CollabTransport;
+  shareSummary: string | null;
 }
 
 export const COLLAB_QUERY_PARAM = 'room';
 export const COLLAB_HOST_PARAM = 'host';
+
+export type ShareScopeMode = 'all' | 'current' | 'selected';
+
+/** Which projects are included in a live share link. */
+export interface ShareScope {
+  mode: ShareScopeMode;
+  /** For `current`: one id. For `selected`: chosen ids. For `all`: optional snapshot (ignored ù uses live list). */
+  projectIds: string[];
+}

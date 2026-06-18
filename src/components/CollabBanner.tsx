@@ -20,14 +20,16 @@ export function CollabBanner() {
   };
 
   const editors = !isFirebaseConfigured()
-    ? 'Firebase not configured ó add VITE_FIREBASE_* env vars (see README)'
+    ? 'Firebase not configured ù add VITE_FIREBASE_* env vars (see README)'
     : collab.status === 'connected'
       ? collab.peerCount > 0
         ? `${collab.peerCount + 1} people editing`
         : 'Waiting for others to join'
       : collab.status === 'disconnected'
-        ? 'Firebase connection failed ó check database rules and env vars'
+        ? 'Firebase connection failed ù check database rules and env vars'
         : 'Connecting to live session...';
+
+  const scopeLabel = collab.shareSummary ? `Sharing ${collab.shareSummary}` : null;
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-200 sm:px-6 sm:text-sm print:hidden">
@@ -43,7 +45,15 @@ export function CollabBanner() {
           aria-hidden
         />
         <span>
-          <strong className="font-medium text-violet-100">Live board</strong> ∑ {editors}
+          <strong className="font-medium text-violet-100">Live board</strong>
+          {scopeLabel && (
+            <>
+              {' '}
+              ù <span className="text-violet-300/90">{scopeLabel}</span>
+            </>
+          )}
+          {' ù '}
+          {editors}
         </span>
       </div>
       <button

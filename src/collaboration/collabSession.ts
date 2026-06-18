@@ -1,4 +1,18 @@
 import {
+  buildWorkspaceSnapshotForShare,
+  describeShareScope,
+  defaultShareScope,
+} from './shareScope';
+import type { CollabPayload, CollabState, CollabStatus, ShareScope } from './types';
+import { COLLAB_HOST_PARAM, COLLAB_QUERY_PARAM } from './types';
+import {
+  applyRemoteWorkspace,
+  isApplyingRemoteUpdate,
+  useKanbanStore,
+} from '../store/kanbanStore';
+import { createId } from '../utils/id';
+import { getFirebaseDatabase, isFirebaseConfigured } from './firebaseConfig';
+import {
   get,
   onDisconnect,
   onValue,
@@ -8,18 +22,9 @@ import {
   type Database,
   type Unsubscribe,
 } from 'firebase/database';
-import type { CollabPayload, CollabState, CollabStatus } from './types';
-import { COLLAB_HOST_PARAM, COLLAB_QUERY_PARAM } from './types';
-import {
-  applyRemoteWorkspace,
-  buildWorkspaceSnapshot,
-  isApplyingRemoteUpdate,
-  useKanbanStore,
-} from '../store/kanbanStore';
-import { createId } from '../utils/id';
-import { getFirebaseDatabase, isFirebaseConfigured } from './firebaseConfig';
 
 const HOST_ROOM_KEY = 'kanban-collab-host-room';
+const SHARE_SCOPE_KEY = 'kanban-collab-share-scope';
 const SEED_DELAY_MS = 400;
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -27,6 +32,7 @@ let seedTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPushedTs = 0;
 let lastAppliedTs = 0;
 let canPushLocal = false;
+let shareScope: ShareScope | null = null;
 let unsubscribeStore: (() => void) | null = null;
 let workspaceUnsub: Unsubscribe | null = null;
 let presenceUnsub: Unsubscribe | null = null;
@@ -40,9 +46,11 @@ const collabState: CollabState = {
   peerCount: 0,
   synced: false,
   transport: 'none',
+  shareSummary: null,
 };
 
 export { isFirebaseConfigured as isCollabConfigured };
+export type { ShareScope };
 
 export function isCollabServerConfigured(): boolean {
   return isFirebaseConfigured();
@@ -57,7 +65,16 @@ function getClientId(): string {
   return clientId;
 }
 
+function updateShareSummary() {
+  if (!shareScope || !collabState.roomId) {
+    collabState.shareSummary = null;
+    return;
+  }
+  collabState.shareSummary = describeShareScope(useKanbanStore.getState(), shareScope);
+}
+
 function emitState() {
+  updateShareSummary();
   for (const listener of stateListeners) {
     listener({ ...collabState });
   }
@@ -79,6 +96,29 @@ function markRoomHost(roomId: string): void {
   sessionStorage.setItem(HOST_ROOM_KEY, roomId);
 }
 
+function persistShareScope(roomId: string, scope: ShareScope): void {
+  shareScope = scope;
+  sessionStorage.setItem(`${SHARE_SCOPE_KEY}-${roomId}`, JSON.stringify(scope));
+  emitState();
+}
+
+function loadShareScope(roomId: string): ShareScope | null {
+  try {
+    const raw = sessionStorage.getItem(`${SHARE_SCOPE_KEY}-${roomId}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ShareScope;
+    if (!parsed?.mode || !Array.isArray(parsed.projectIds)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function getEffectiveShareScope(): ShareScope {
+  if (shareScope) return shareScope;
+  return defaultShareScope(useKanbanStore.getState());
+}
+
 function workspaceRef(db: Database, roomId: string) {
   return ref(db, `rooms/${roomId}/workspace`);
 }
@@ -92,11 +132,12 @@ function clientPresenceRef(db: Database, roomId: string, clientId: string) {
 }
 
 function buildPayload(): CollabPayload {
+  const state = useKanbanStore.getState();
   return {
     v: 1,
     clientId: getClientId(),
     ts: Date.now(),
-    data: buildWorkspaceSnapshot(useKanbanStore.getState()),
+    data: buildWorkspaceSnapshotForShare(state, getEffectiveShareScope()),
   };
 }
 
@@ -181,6 +222,10 @@ export function getRoomIdFromUrl(): string | null {
   return roomId?.trim() || null;
 }
 
+export function getShareScope(): ShareScope | null {
+  return shareScope;
+}
+
 export function buildShareUrl(roomId: string, asHost = false): string {
   const url = new URL(window.location.href);
   url.searchParams.set(COLLAB_QUERY_PARAM, roomId);
@@ -224,6 +269,12 @@ async function startCollabSessionAsync(roomId: string): Promise<void> {
   collabState.synced = false;
   collabState.peerCount = 0;
   collabState.transport = 'none';
+
+  if (isRoomHost(roomId)) {
+    shareScope = loadShareScope(roomId) ?? defaultShareScope(useKanbanStore.getState());
+  } else {
+    shareScope = null;
+  }
 
   if (!isFirebaseConfigured()) {
     setCollabStatus('disconnected');
@@ -309,9 +360,11 @@ export async function stopCollabSession(): Promise<void> {
   lastPushedTs = 0;
   lastAppliedTs = 0;
   canPushLocal = false;
+  shareScope = null;
   collabState.roomId = null;
   collabState.peerCount = 0;
   collabState.synced = false;
+  collabState.shareSummary = null;
   collabState.transport = 'none';
   setCollabStatus('idle');
 }
@@ -323,9 +376,21 @@ export function initCollaborationFromUrl(): void {
   }
 }
 
-export function startNewShareSession(): void {
+export function startNewShareSession(scope: ShareScope): string {
   const roomId = createRoomId();
   markRoomHost(roomId);
+  persistShareScope(roomId, scope);
   navigateToRoom(roomId, true);
   startCollabSession(roomId);
+  return buildShareUrl(roomId);
+}
+
+/** Update which boards are synced for an active host session and push immediately. */
+export async function updateShareScope(scope: ShareScope): Promise<void> {
+  if (!activeRoomId || !isRoomHost(activeRoomId)) return;
+
+  persistShareScope(activeRoomId, scope);
+  canPushLocal = true;
+  lastPushedTs = 0;
+  await pushLocalState(true);
 }
