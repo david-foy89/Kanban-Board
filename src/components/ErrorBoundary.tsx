@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { LEGACY_STORAGE_KEY, PROJECTS_STORAGE_KEY } from '../store/boardPersistence';
 
 interface Props {
   children: ReactNode;
@@ -22,7 +23,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = () => {
     try {
-      localStorage.removeItem('kanban-board-state');
+      localStorage.removeItem(PROJECTS_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_STORAGE_KEY);
     } catch {
       // ignore
     }

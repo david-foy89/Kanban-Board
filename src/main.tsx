@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
+import { initCollaborationFromUrl } from './collaboration/collabSession.ts';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { initBoardPersistence } from './store/kanbanStore.ts';
 import './index.css';
@@ -32,6 +33,7 @@ if (!rootEl) {
 
 try {
   initBoardPersistence();
+  initCollaborationFromUrl();
 
   createRoot(rootEl).render(
     <ErrorBoundary>

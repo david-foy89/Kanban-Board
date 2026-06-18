@@ -1,23 +1,38 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { Priority } from '../types/kanban';
-import { PRIORITY_LABELS } from '../utils/priority';
+import type { Priority, StatusLabel, TaskType } from '../types/kanban';
+import {
+  defaultTaskLabels,
+  PRIORITIES,
+  PRIORITY_LABELS,
+  STATUS_LABEL_OPTIONS,
+  STATUS_LABELS,
+  TASK_TYPES,
+  TYPE_LABELS,
+  type TaskLabelValues,
+} from '../utils/labels';
 
-const PRIORITIES: Priority[] = ['low', 'medium', 'high'];
+export type { TaskLabelValues };
 
 interface TaskFormProps {
   mode: 'create' | 'edit';
   initialTitle?: string;
   initialDescription?: string;
-  initialPriority?: Priority;
-  onSubmit: (title: string, description: string, priority: Priority) => void;
+  initialLabels?: TaskLabelValues;
+  onSubmit: (title: string, description: string, labels: TaskLabelValues) => void;
   onCancel: () => void;
+}
+
+function chipClass(selected: boolean) {
+  return selected
+    ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
+    : 'border-zinc-700 text-zinc-400 hover:border-zinc-600';
 }
 
 export function TaskForm({
   mode,
   initialTitle = '',
   initialDescription = '',
-  initialPriority = 'medium',
+  initialLabels = defaultTaskLabels(),
   onSubmit,
   onCancel,
 }: TaskFormProps) {
@@ -25,12 +40,20 @@ export function TaskForm({
   const titleRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(initialDescription);
-  const [priority, setPriority] = useState<Priority>(initialPriority);
+  const [priority, setPriority] = useState<Priority>(initialLabels.priority);
+  const [type, setType] = useState<TaskType | null>(initialLabels.type);
+  const [statusLabels, setStatusLabels] = useState<StatusLabel[]>(initialLabels.statusLabels);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   useEffect(() => {
     titleRef.current?.focus();
   }, []);
+
+  const toggleStatus = (status: StatusLabel) => {
+    setStatusLabels((current) =>
+      current.includes(status) ? current.filter((s) => s !== status) : [...current, status],
+    );
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +63,7 @@ export function TaskForm({
       return;
     }
     setTitleError(null);
-    onSubmit(trimmed, description, priority);
+    onSubmit(trimmed, description, { priority, type, statusLabels });
   };
 
   return (
@@ -92,15 +115,11 @@ export function TaskForm({
 
       <fieldset className="mt-3">
         <legend className="mb-1.5 text-xs font-medium text-zinc-500">Priority</legend>
-        <div className="flex flex-col gap-2 min-[400px]:flex-row">
+        <div className="flex flex-wrap gap-1.5">
           {PRIORITIES.map((p) => (
             <label
               key={p}
-              className={`flex-1 cursor-pointer touch-manipulation rounded-md border px-2 py-3 text-center text-xs font-medium transition focus-within:ring-2 focus-within:ring-violet-500/25 sm:py-1.5 ${
-                priority === p
-                  ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
-                  : 'border-zinc-700 text-zinc-400 hover:border-zinc-600'
-              }`}
+              className={`cursor-pointer touch-manipulation rounded-md border px-2.5 py-2 text-xs font-medium transition focus-within:ring-2 focus-within:ring-violet-500/25 sm:py-1.5 ${chipClass(priority === p)}`}
             >
               <input
                 type="radio"
@@ -112,6 +131,40 @@ export function TaskForm({
               />
               {PRIORITY_LABELS[p]}
             </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="mt-3">
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">Type</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {TASK_TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setType((current) => (current === t ? null : t))}
+              className={`touch-manipulation rounded-md border px-2.5 py-2 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-violet-500/25 sm:py-1.5 ${chipClass(type === t)}`}
+              aria-pressed={type === t}
+            >
+              {TYPE_LABELS[t]}
+            </button>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="mt-3">
+        <legend className="mb-1.5 text-xs font-medium text-zinc-500">Status</legend>
+        <div className="flex flex-wrap gap-1.5">
+          {STATUS_LABEL_OPTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => toggleStatus(s)}
+              className={`touch-manipulation rounded-md border px-2.5 py-2 text-xs font-medium transition focus:outline-none focus:ring-2 focus:ring-violet-500/25 sm:py-1.5 ${chipClass(statusLabels.includes(s))}`}
+              aria-pressed={statusLabels.includes(s)}
+            >
+              {STATUS_LABELS[s]}
+            </button>
           ))}
         </div>
       </fieldset>

@@ -1,6 +1,12 @@
-import type { BoardState } from '../types/kanban';
+import type { BoardState, Project, ProjectsPersistedState } from '../types/kanban';
+import { normalizeBoard, normalizeProject } from '../utils/boardMigration';
+import { createId } from '../utils/id';
 
-export const STORAGE_KEY = 'kanban-board-state';
+export const LEGACY_STORAGE_KEY = 'kanban-board-state';
+export const PROJECTS_STORAGE_KEY = 'kanban-projects-v2';
+
+/** @deprecated Use PROJECTS_STORAGE_KEY */
+export const STORAGE_KEY = PROJECTS_STORAGE_KEY;
 
 export function isLocalStorageAvailable(): boolean {
   try {
@@ -54,24 +60,89 @@ export function isValidBoardState(data: unknown): data is BoardState {
   return true;
 }
 
-export function loadBoardFromStorage(): BoardState | null {
+function isValidProject(data: unknown): data is Project {
+  if (!data || typeof data !== 'object') return false;
+  const record = data as Record<string, unknown>;
+  if (typeof record.id !== 'string' || typeof record.name !== 'string') return false;
+  if (typeof record.createdAt !== 'string' || typeof record.updatedAt !== 'string') return false;
+  return isValidBoardState(data);
+}
+
+export function isValidProjectsState(data: unknown): data is ProjectsPersistedState {
+  if (!data || typeof data !== 'object') return false;
+  const record = data as Record<string, unknown>;
+  if (record.version !== 2) return false;
+  if (typeof record.activeProjectId !== 'string') return false;
+  if (!Array.isArray(record.projectOrder) || record.projectOrder.length === 0) return false;
+  if (!record.projects || typeof record.projects !== 'object') return false;
+
+  const projects = record.projects as Record<string, unknown>;
+  for (const id of record.projectOrder) {
+    const project = projects[id];
+    if (!isValidProject(project) || project.id !== id) return false;
+  }
+
+  if (!projects[record.activeProjectId]) return false;
+  return true;
+}
+
+export function loadLegacyBoardFromStorage(): BoardState | null {
   if (!isLocalStorageAvailable()) return null;
 
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (!raw) return null;
 
     const parsed: unknown = JSON.parse(raw);
     if (isValidBoardState(parsed)) {
       return normalizePersistedBoard(parsed)!;
     }
+  } catch {
+    // ignore
+  }
 
-    console.warn('[Kanban] Invalid saved data; clearing local storage.');
-    window.localStorage.removeItem(STORAGE_KEY);
+  return null;
+}
+
+export function loadProjectsFromStorage(): ProjectsPersistedState | null {
+  if (!isLocalStorageAvailable()) return null;
+
+  try {
+    const raw = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
+    if (raw) {
+      const parsed: unknown = JSON.parse(raw);
+      if (isValidProjectsState(parsed)) return parsed;
+      console.warn('[Kanban] Invalid projects data; clearing storage.');
+      window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
+    }
+
+    const legacy = loadLegacyBoardFromStorage();
+    if (legacy) {
+      const projectId = createId();
+      const now = new Date().toISOString();
+      const project: Project = normalizeProject({
+        id: projectId,
+        name: 'My Board',
+        createdAt: now,
+        updatedAt: now,
+        ...legacy,
+      });
+
+      const migrated: ProjectsPersistedState = {
+        version: 2,
+        activeProjectId: projectId,
+        projectOrder: [projectId],
+        projects: { [projectId]: project },
+      };
+
+      saveProjectsToStorage(migrated);
+      window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+      return migrated;
+    }
   } catch (error) {
-    console.warn('[Kanban] Failed to read saved board.', error);
+    console.warn('[Kanban] Failed to read saved projects.', error);
     try {
-      window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(PROJECTS_STORAGE_KEY);
     } catch {
       // ignore
     }
@@ -80,19 +151,48 @@ export function loadBoardFromStorage(): BoardState | null {
   return null;
 }
 
-export function saveBoardToStorage(board: BoardState): void {
+export function saveProjectsToStorage(state: ProjectsPersistedState): void {
   if (!isLocalStorageAvailable()) return;
 
   try {
-    window.localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        columns: board.columns,
-        tasks: board.tasks,
-        columnOrder: board.columnOrder,
-      }),
-    );
+    window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(state));
   } catch (error) {
-    console.warn('[Kanban] Failed to save board to local storage.', error);
+    console.warn('[Kanban] Failed to save projects to local storage.', error);
   }
+}
+
+/** @deprecated Use loadProjectsFromStorage */
+export function loadBoardFromStorage(): BoardState | null {
+  const projects = loadProjectsFromStorage();
+  if (!projects) return null;
+  const active = projects.projects[projects.activeProjectId];
+  if (!active) return null;
+  return {
+    columns: normalizeBoard(active).columns,
+    tasks: normalizeBoard(active).tasks,
+    columnOrder: active.columnOrder,
+    swimlanes: normalizeBoard(active).swimlanes,
+    swimlaneOrder: normalizeBoard(active).swimlaneOrder,
+  };
+}
+
+/** @deprecated Use saveProjectsToStorage */
+export function saveBoardToStorage(board: BoardState): void {
+  const projects = loadProjectsFromStorage();
+  if (!projects) return;
+
+  const active = projects.projects[projects.activeProjectId];
+  if (!active) return;
+
+  saveProjectsToStorage({
+    ...projects,
+    projects: {
+      ...projects.projects,
+      [projects.activeProjectId]: {
+        ...active,
+        ...board,
+        updatedAt: new Date().toISOString(),
+      },
+    },
+  });
 }

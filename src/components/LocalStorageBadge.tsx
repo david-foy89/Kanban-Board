@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { isLocalStorageAvailable } from '../store/storage';
-import { STORAGE_KEY } from '../store/boardPersistence';
+import { PROJECTS_STORAGE_KEY } from '../store/boardPersistence';
 import { useKanbanStore } from '../store/kanbanStore';
 
 function readHasSavedData(): boolean {
   try {
-    return window.localStorage.getItem(STORAGE_KEY) !== null;
+    return window.localStorage.getItem(PROJECTS_STORAGE_KEY) !== null;
   } catch {
     return false;
   }
@@ -42,7 +42,7 @@ export function LocalStorageBadge() {
       className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-400"
       title={
         saved
-          ? 'Your board is saved in this browser local storage.'
+          ? 'Your projects are saved in this browser local storage.'
           : 'Changes are saved to this browser automatically.'
       }
     >

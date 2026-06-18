@@ -1,7 +1,20 @@
-export function EmptyColumnState() {
+interface EmptyColumnStateProps {
+  hasSearch?: boolean;
+  compact?: boolean;
+}
+
+export function EmptyColumnState({ hasSearch = false, compact = false }: EmptyColumnStateProps) {
+  if (compact) {
+    return (
+      <p className="py-4 text-center text-[11px] text-zinc-600 print:hidden" role="status">
+        {hasSearch ? 'No matches' : 'Empty'}
+      </p>
+    );
+  }
+
   return (
     <div
-      className="flex min-h-[6rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-700/60 bg-zinc-900/30 px-3 py-6 text-center transition-colors sm:min-h-[7rem] sm:px-4 sm:py-8"
+      className="flex min-h-[6rem] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-700/60 bg-zinc-900/30 px-3 py-6 text-center transition-colors sm:min-h-[7rem] sm:px-4 sm:py-8 print:hidden"
       role="status"
       aria-label="No tasks in this column"
     >
@@ -19,8 +32,12 @@ export function EmptyColumnState() {
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         />
       </svg>
-      <p className="text-sm font-medium text-zinc-500">No tasks yet</p>
-      <p className="mt-1 text-xs text-zinc-600">Add a task or drag one here</p>
+      <p className="text-sm font-medium text-zinc-500">
+        {hasSearch ? 'No matching tasks' : 'No tasks yet'}
+      </p>
+      <p className="mt-1 text-xs text-zinc-600">
+        {hasSearch ? 'Try a different search term' : 'Add a task or drag one here'}
+      </p>
     </div>
   );
 }
