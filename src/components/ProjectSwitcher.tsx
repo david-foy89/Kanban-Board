@@ -6,7 +6,7 @@ import { useToast } from './Toast';
 
 export function ProjectSwitcher() {
   const activeProjectId = useKanbanStore((s) => s.activeProjectId);
-  const projectOrder = useKanbanStore((s) => s.projectOrder);
+  const projectOrder = useKanbanStore((s) => s.projectOrder ?? []);
   const projects = useKanbanStore((s) => s.projects);
   const createProject = useKanbanStore((s) => s.createProject);
   const switchProject = useKanbanStore((s) => s.switchProject);

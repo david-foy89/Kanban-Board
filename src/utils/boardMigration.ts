@@ -30,6 +30,7 @@ function normalizeColumn(column: Column): Column {
   return {
     ...column,
     stage,
+    taskIds: column.taskIds ?? [],
     wipLimit:
       column.wipLimit !== undefined
         ? column.wipLimit
@@ -71,6 +72,7 @@ export function normalizeBoard(board: BoardState): BoardState {
     ...board,
     columns,
     tasks,
+    columnOrder: board.columnOrder ?? [],
     swimlanes,
     swimlaneOrder,
   };

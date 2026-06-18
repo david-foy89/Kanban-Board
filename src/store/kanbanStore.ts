@@ -16,6 +16,7 @@ import {
 import { createId } from '../utils/id';
 import {
   loadProjectsFromStorage,
+  normalizeRemoteWorkspace,
   PROJECTS_STORAGE_KEY,
   saveProjectsToStorage,
 } from './boardPersistence';
@@ -578,29 +579,28 @@ export function buildWorkspaceSnapshot(state: KanbanStore): ProjectsPersistedSta
   };
 }
 
-export function applyRemoteWorkspace(data: ProjectsPersistedState): void {
+export function applyRemoteWorkspace(data: unknown): void {
+  const normalized = normalizeRemoteWorkspace(data);
+  if (!normalized) {
+    console.warn('[Kanban] Ignoring invalid remote workspace payload');
+    return;
+  }
+
   applyingRemote = true;
   try {
-    const active = normalizeProject(data.projects[data.activeProjectId]);
+    const active = normalizeProject(normalized.projects[normalized.activeProjectId]);
     if (!active) return;
 
     const normalizedProjects = Object.fromEntries(
-      Object.entries(data.projects).map(([id, p]) => [id, normalizeProject(p)]),
+      Object.entries(normalized.projects).map(([id, p]) => [id, normalizeProject(p)]),
     ) as Record<string, Project>;
 
-    const normalized = {
-      version: 2 as const,
-      activeProjectId: data.activeProjectId,
-      projectOrder: data.projectOrder,
-      projects: normalizedProjects,
-    };
-
-    lastSavedJson = JSON.stringify(normalized);
+    lastSavedJson = JSON.stringify({ ...normalized, projects: normalizedProjects });
     const board = normalizeBoard(active);
 
     useKanbanStore.setState({
-      activeProjectId: data.activeProjectId,
-      projectOrder: data.projectOrder,
+      activeProjectId: normalized.activeProjectId,
+      projectOrder: normalized.projectOrder,
       projects: normalizedProjects,
       columns: board.columns,
       tasks: board.tasks,

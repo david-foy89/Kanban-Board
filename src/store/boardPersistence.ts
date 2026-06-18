@@ -68,6 +68,68 @@ function isValidProject(data: unknown): data is Project {
   return isValidBoardState(data);
 }
 
+/** Parse and validate Firebase / remote sync payloads before applying to the store. */
+export function normalizeRemoteWorkspace(data: unknown): ProjectsPersistedState | null {
+  if (!data || typeof data !== 'object') return null;
+
+  const record = data as Record<string, unknown>;
+  if (!record.projects || typeof record.projects !== 'object') return null;
+
+  const projects: Record<string, Project> = {};
+  const now = new Date().toISOString();
+
+  for (const [id, raw] of Object.entries(record.projects as Record<string, unknown>)) {
+    if (!raw || typeof raw !== 'object') continue;
+    const project = raw as Record<string, unknown>;
+    if (typeof project.name !== 'string') continue;
+
+    try {
+      projects[id] = normalizeProject({
+        id,
+        name: project.name,
+        createdAt: typeof project.createdAt === 'string' ? project.createdAt : now,
+        updatedAt: typeof project.updatedAt === 'string' ? project.updatedAt : now,
+        columns: (project.columns as Project['columns']) ?? {},
+        tasks: (project.tasks as Project['tasks']) ?? {},
+        columnOrder: Array.isArray(project.columnOrder) ? project.columnOrder : [],
+        swimlanes: project.swimlanes as Project['swimlanes'],
+        swimlaneOrder: Array.isArray(project.swimlaneOrder)
+          ? project.swimlaneOrder
+          : undefined,
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  if (Object.keys(projects).length === 0) return null;
+
+  let activeProjectId =
+    typeof record.activeProjectId === 'string' ? record.activeProjectId : '';
+  if (!projects[activeProjectId]) {
+    activeProjectId = Object.keys(projects)[0];
+  }
+
+  let projectOrder = Array.isArray(record.projectOrder)
+    ? record.projectOrder.filter(
+        (id): id is string => typeof id === 'string' && Boolean(projects[id]),
+      )
+    : [activeProjectId];
+
+  if (projectOrder.length === 0) {
+    projectOrder = [activeProjectId];
+  }
+
+  const normalized: ProjectsPersistedState = {
+    version: 2,
+    activeProjectId,
+    projectOrder,
+    projects,
+  };
+
+  return isValidProjectsState(normalized) ? normalized : null;
+}
+
 export function isValidProjectsState(data: unknown): data is ProjectsPersistedState {
   if (!data || typeof data !== 'object') return false;
   const record = data as Record<string, unknown>;

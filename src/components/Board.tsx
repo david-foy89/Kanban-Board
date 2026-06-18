@@ -13,7 +13,7 @@ interface BoardProps {
 }
 
 export function Board({ searchQuery }: BoardProps) {
-  const columnOrder = useKanbanStore((s) => s.columnOrder);
+  const columnOrder = useKanbanStore((s) => s.columnOrder ?? []);
   const columns = useKanbanStore((s) => s.columns);
   const tasks = useKanbanStore((s) => s.tasks);
   const swimlaneOrder = useKanbanStore((s) => s.swimlaneOrder ?? []);
