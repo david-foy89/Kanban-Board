@@ -4,15 +4,14 @@ import { getDatabase, type Database } from 'firebase/database';
 let app: FirebaseApp | null = null;
 let database: Database | null = null;
 
-function readEnv(key: string): string | undefined {
-  const value = import.meta.env[key as keyof ImportMetaEnv];
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+/** Vite only inlines env vars on static `import.meta.env.VITE_*` access — not dynamic keys. */
+function env(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
 }
 
 export function isFirebaseConfigured(): boolean {
-  return Boolean(readEnv('VITE_FIREBASE_DATABASE_URL'));
+  return Boolean(env(import.meta.env.VITE_FIREBASE_DATABASE_URL));
 }
 
 export function getFirebaseDatabase(): Database | null {
@@ -20,11 +19,11 @@ export function getFirebaseDatabase(): Database | null {
 
   if (!database) {
     app = initializeApp({
-      apiKey: readEnv('VITE_FIREBASE_API_KEY'),
-      authDomain: readEnv('VITE_FIREBASE_AUTH_DOMAIN'),
-      databaseURL: readEnv('VITE_FIREBASE_DATABASE_URL'),
-      projectId: readEnv('VITE_FIREBASE_PROJECT_ID'),
-      appId: readEnv('VITE_FIREBASE_APP_ID'),
+      apiKey: env(import.meta.env.VITE_FIREBASE_API_KEY),
+      authDomain: env(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+      databaseURL: env(import.meta.env.VITE_FIREBASE_DATABASE_URL),
+      projectId: env(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+      appId: env(import.meta.env.VITE_FIREBASE_APP_ID),
     });
     database = getDatabase(app);
   }
