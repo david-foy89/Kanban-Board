@@ -27,11 +27,17 @@ export function resolveCollabWsUrl(): string | null {
 }
 
 export function isCollabServerConfigured(): boolean {
-  return resolveCollabWsUrl() !== null;
+  if (resolveCollabWsUrl() !== null) return true;
+  return supportsBroadcastChannelSync();
 }
 
+/** True when the published site has no remote WebSocket URL configured. */
 export function isProductionWithoutCollabServer(): boolean {
   if (typeof window === 'undefined') return false;
   if (getBuiltInCollabWsUrl()) return false;
   return !isLocalDevHost(window.location.hostname);
+}
+
+export function supportsBroadcastChannelSync(): boolean {
+  return typeof BroadcastChannel !== 'undefined';
 }

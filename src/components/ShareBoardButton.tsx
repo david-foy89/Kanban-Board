@@ -18,16 +18,8 @@ export function ShareBoardButton() {
   const [copied, setCopied] = useState(false);
 
   const handleShare = async () => {
-    if (isProductionWithoutCollabServer()) {
-      showToast(
-        'Live share on GitHub Pages needs a sync server. Deploy collab-server and set COLLAB_WS_URL — see README.',
-        'info',
-      );
-      return;
-    }
-
     if (!isCollabServerConfigured()) {
-      showToast('Sync server not available. Run npm run dev to start the local server.', 'info');
+      showToast('Sync not available in this browser.', 'info');
       return;
     }
 
@@ -48,7 +40,11 @@ export function ShareBoardButton() {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      showToast('Share link copied — anyone with the link can edit live');
+      if (isProductionWithoutCollabServer()) {
+        showToast('Link copied — opens in another tab on this device (same browser)');
+      } else {
+        showToast('Share link copied — anyone with the link can edit live');
+      }
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast('Copy this link to share: ' + url, 'info');
@@ -59,9 +55,13 @@ export function ShareBoardButton() {
     collab.status === 'connecting'
       ? 'Connecting...'
       : collab.status === 'connected'
-        ? collab.peerCount > 0
-          ? `${collab.peerCount + 1} editing`
-          : 'Link ready'
+        ? collab.transport === 'broadcast' && isProductionWithoutCollabServer()
+          ? collab.peerCount > 0
+            ? `${collab.peerCount + 1} tabs`
+            : 'Same browser'
+          : collab.peerCount > 0
+            ? `${collab.peerCount + 1} editing`
+            : 'Link ready'
         : collab.status === 'disconnected' && collab.roomId
           ? 'Offline'
           : null;
@@ -73,7 +73,7 @@ export function ShareBoardButton() {
       className="inline-flex items-center gap-1.5 rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-xs font-medium text-violet-300 transition hover:border-violet-500/60 hover:bg-violet-500/20 focus:outline-none focus:ring-2 focus:ring-violet-500/30 sm:text-sm"
       title={
         isProductionWithoutCollabServer()
-          ? 'Deploy collab-server and set COLLAB_WS_URL for live share on GitHub Pages'
+          ? 'Share link syncs across tabs in the same browser. Deploy collab-server for cross-device sync.'
           : 'Create a link others can use to edit this board in real time'
       }
     >

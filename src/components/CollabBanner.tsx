@@ -18,17 +18,17 @@ export function CollabBanner() {
     }
   };
 
-  const needsServer = isProductionWithoutCollabServer();
-
   const editors =
-    needsServer
-      ? 'Live sync needs a WebSocket server — see README (Live share on GitHub Pages)'
+    collab.transport === 'broadcast' && isProductionWithoutCollabServer()
+      ? collab.peerCount > 0
+        ? `${collab.peerCount + 1} tabs in this browser`
+        : 'Same-browser sync — open this link in another tab'
       : collab.status === 'connected'
         ? collab.peerCount > 0
           ? `${collab.peerCount + 1} people editing`
           : 'Waiting for others to join'
         : collab.status === 'disconnected'
-          ? 'Sync server offline — check collab-server is deployed'
+          ? 'Sync server offline — deploy collab-server or use two tabs locally'
           : 'Connecting to live session...';
 
   return (
@@ -36,7 +36,7 @@ export function CollabBanner() {
       <div className="flex items-center gap-2">
         <span
           className={`h-2 w-2 rounded-full ${
-            needsServer || collab.status === 'disconnected'
+            collab.status === 'disconnected'
               ? 'bg-red-400 animate-pulse'
               : collab.status === 'connected'
                 ? 'bg-emerald-400 animate-pulse'

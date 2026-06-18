@@ -13,6 +13,7 @@ import {
   isCollabServerConfigured,
   isProductionWithoutCollabServer,
   resolveCollabWsUrl,
+  supportsBroadcastChannelSync,
 } from './collabConfig';
 
 const LOCAL_ORIGIN = 'kanban-local';
@@ -36,6 +37,7 @@ const collabState: CollabState = {
   status: 'idle',
   peerCount: 0,
   synced: false,
+  transport: 'none',
 };
 
 function unwrapEvent<T>(event: T | T[]): T {
@@ -231,34 +233,50 @@ export function isCollabActive(): boolean {
   return collabState.roomId !== null;
 }
 
-export function startCollabSession(roomId: string): void {
-  if (collabState.roomId === roomId && provider) return;
+function wireDocSync(ymap: Y.Map<unknown>) {
+  ymap.observe((event) => {
+    if (event.transaction.origin === LOCAL_ORIGIN) return;
+    pullRemoteState();
+  });
 
-  stopCollabSession();
+  ydoc!.on('update', (_update, origin) => {
+    if (origin === LOCAL_ORIGIN) return;
+    pullRemoteState();
+  });
 
-  const wsUrl = getCollabWsUrl();
-  if (!wsUrl) {
-    collabState.roomId = roomId;
-    collabState.synced = false;
-    collabState.peerCount = 0;
-    setCollabStatus('disconnected');
-    emitState();
-    return;
+  pollTimer = setInterval(pullRemoteState, 1000);
+
+  if (provider) {
+    provider.awareness.on('change', () => {
+      if (!provider) return;
+      collabState.peerCount = Math.max(0, provider.awareness.getStates().size - 1);
+      emitState();
+    });
   }
 
-  collabState.roomId = roomId;
-  collabState.synced = false;
-  collabState.peerCount = 0;
-  setCollabStatus('connecting');
+  attachStoreSync();
+}
 
-  canPushLocal = isRoomHost(roomId);
-  lastAppliedTs = 0;
-  lastPushedJson = '';
+function startBroadcastOnlySession(roomId: string, roomName: string) {
+  collabState.transport = 'broadcast';
+  collabState.synced = true;
+  setCollabStatus('connected');
 
-  ydoc = new Y.Doc();
-  const ymap = ydoc.getMap(PAYLOAD_KEY);
+  // Dummy URL  WebSocket is never opened; tabs sync via BroadcastChannel.
+  provider = new WebsocketProvider('ws://127.0.0.1:1', roomName, ydoc!, { connect: false });
+  provider.connectBc();
+  wireDocSync(ydoc!.getMap(PAYLOAD_KEY));
+  seedTimer = setTimeout(() => {
+    seedTimer = null;
+    maybeSeedLocalState(roomId);
+  }, SEED_DELAY_MS);
+  emitState();
+}
 
-  provider = new WebsocketProvider(wsUrl, `kanban-board-${roomId}`, ydoc, {
+function startWebSocketSession(roomId: string, roomName: string, wsUrl: string) {
+  collabState.transport = 'websocket';
+
+  provider = new WebsocketProvider(wsUrl, roomName, ydoc!, {
     connect: true,
     resyncInterval: 3000,
   });
@@ -291,26 +309,41 @@ export function startCollabSession(roomId: string): void {
     if (collabState.synced) pullRemoteState();
   });
 
-  provider.awareness.on('change', () => {
-    if (!provider) return;
-    collabState.peerCount = Math.max(0, provider.awareness.getStates().size - 1);
-    emitState();
-  });
-
-  ymap.observe((event) => {
-    if (event.transaction.origin === LOCAL_ORIGIN) return;
-    pullRemoteState();
-  });
-
-  ydoc.on('update', (_update, origin) => {
-    if (origin === LOCAL_ORIGIN) return;
-    pullRemoteState();
-  });
-
-  pollTimer = setInterval(pullRemoteState, 1000);
-
-  attachStoreSync();
+  wireDocSync(ydoc!.getMap(PAYLOAD_KEY));
   emitState();
+}
+
+export function startCollabSession(roomId: string): void {
+  if (collabState.roomId === roomId && provider) return;
+
+  stopCollabSession();
+
+  const wsUrl = getCollabWsUrl();
+  const roomName = `kanban-board-${roomId}`;
+
+  collabState.roomId = roomId;
+  collabState.synced = false;
+  collabState.peerCount = 0;
+  collabState.transport = 'none';
+
+  if (!wsUrl && !supportsBroadcastChannelSync()) {
+    setCollabStatus('disconnected');
+    emitState();
+    return;
+  }
+
+  setCollabStatus('connecting');
+  canPushLocal = isRoomHost(roomId);
+  lastAppliedTs = 0;
+  lastPushedJson = '';
+
+  ydoc = new Y.Doc();
+
+  if (wsUrl) {
+    startWebSocketSession(roomId, roomName, wsUrl);
+  } else {
+    startBroadcastOnlySession(roomId, roomName);
+  }
 }
 
 export function stopCollabSession(): void {
@@ -325,6 +358,7 @@ export function stopCollabSession(): void {
   collabState.roomId = null;
   collabState.peerCount = 0;
   collabState.synced = false;
+  collabState.transport = 'none';
   setCollabStatus('idle');
 }
 

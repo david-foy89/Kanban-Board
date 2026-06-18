@@ -14,6 +14,7 @@ const CollaborationContext = createContext<CollabState>({
   status: 'idle',
   peerCount: 0,
   synced: false,
+  transport: 'none',
 });
 
 export function CollaborationProvider({ children }: { children: ReactNode }) {
