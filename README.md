@@ -75,6 +75,36 @@ This repo is a **Vite/React app**, not a Jekyll site. Do **not** use "Deploy fro
 
 The CI build sets `VITE_BASE_PATH` automatically for your repository name.
 
+### Live share on GitHub Pages
+
+GitHub Pages only hosts static files — it cannot run the WebSocket server live sync needs. To enable **Share live** on your published site:
+
+1. **Deploy the sync server** (pick one):
+
+   **Fly.io** (recommended, free tier):
+
+   ```bash
+   cd collab-server
+   fly launch          # create app (e.g. kanban-board-collab)
+   fly deploy
+   ```
+
+   **Render** (free tier): connect this repo at [render.com](https://render.com) — it uses the included `render.yaml`.
+
+2. **Note your WebSocket URL** — e.g. `wss://kanban-board-collab.fly.dev` (no trailing slash, no `/ws` path).
+
+3. **Set a GitHub repository variable** (not a secret):
+
+   - Repo **Settings** → **Secrets and variables** → **Actions** → **Variables**
+   - Name: `COLLAB_WS_URL`
+   - Value: `wss://your-collab-server.example.com`
+
+4. **Re-run the Pages deploy** — push to `main` or use **Actions** → **Deploy to GitHub Pages** → **Run workflow**.
+
+Local dev still uses `ws://localhost:1234` automatically (`npm run dev` starts both servers).
+
+Optional: add GitHub secret `FLY_API_TOKEN` to auto-deploy `collab-server/` on push (see `.github/workflows/deploy-collab.yml`).
+
 ## Wireframes
 
 UI wireframes (SVG) document layout, flows, and component architecture:

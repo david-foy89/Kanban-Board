@@ -35,6 +35,8 @@ jobs:
         env:
           # Project site: https://<user>.github.io/<repo>/
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
+          # Set repo variable COLLAB_WS_URL (e.g. wss://kanban-board-collab.fly.dev)
+          VITE_COLLAB_WS_URL: ${{ vars.COLLAB_WS_URL }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

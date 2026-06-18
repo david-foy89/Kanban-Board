@@ -17,3 +17,4 @@ export interface CollabState {
 }
 
 export const COLLAB_QUERY_PARAM = 'room';
+export const COLLAB_HOST_PARAM = 'host';

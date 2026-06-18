@@ -559,7 +559,23 @@ export function isApplyingRemoteUpdate(): boolean {
 }
 
 export function buildWorkspaceSnapshot(state: KanbanStore): ProjectsPersistedState {
-  return projectsPersistSlice(state);
+  const board = boardSlice(state);
+  const active = state.projects[state.activeProjectId];
+  const projects: Record<string, Project> = {};
+
+  for (const [id, project] of Object.entries(state.projects)) {
+    projects[id] =
+      id === state.activeProjectId && active
+        ? normalizeProject({ ...active, ...board })
+        : normalizeProject(project);
+  }
+
+  return {
+    version: 2 as const,
+    activeProjectId: state.activeProjectId,
+    projectOrder: state.projectOrder,
+    projects,
+  };
 }
 
 export function applyRemoteWorkspace(data: ProjectsPersistedState): void {

@@ -1,0 +1,17 @@
+# One-click deploy: connect this repo at https://render.com
+# After deploy, set GitHub variable COLLAB_WS_URL to wss://<service-name>.onrender.com
+
+services:
+  - type: web
+    name: kanban-board-collab
+    runtime: node
+    rootDir: collab-server
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: NODE_VERSION
+        value: 20

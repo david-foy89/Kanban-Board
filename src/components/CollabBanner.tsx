@@ -1,4 +1,4 @@
-import { buildShareUrl } from '../collaboration/collabSession';
+import { buildShareUrl, isProductionWithoutCollabServer } from '../collaboration/collabSession';
 import { useCollaboration } from '../collaboration/CollaborationProvider';
 import { useToast } from './Toast';
 
@@ -18,30 +18,34 @@ export function CollabBanner() {
     }
   };
 
+  const needsServer = isProductionWithoutCollabServer();
+
   const editors =
-    collab.status === 'connected'
-      ? collab.peerCount > 0
-        ? `${collab.peerCount + 1} people editing`
-        : 'Waiting for others to join'
-      : collab.status === 'disconnected'
-        ? 'Connection lost ù retryingù'
-        : 'Connecting to live sessionù';
+    needsServer
+      ? 'Live sync needs a WebSocket server ó see README (Live share on GitHub Pages)'
+      : collab.status === 'connected'
+        ? collab.peerCount > 0
+          ? `${collab.peerCount + 1} people editing`
+          : 'Waiting for others to join'
+        : collab.status === 'disconnected'
+          ? 'Sync server offline ó check collab-server is deployed'
+          : 'Connecting to live session...';
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-200 sm:px-6 sm:text-sm print:hidden">
       <div className="flex items-center gap-2">
         <span
           className={`h-2 w-2 rounded-full ${
-            collab.status === 'connected'
-              ? 'bg-emerald-400 animate-pulse'
-              : collab.status === 'disconnected'
-                ? 'bg-red-400 animate-pulse'
+            needsServer || collab.status === 'disconnected'
+              ? 'bg-red-400 animate-pulse'
+              : collab.status === 'connected'
+                ? 'bg-emerald-400 animate-pulse'
                 : 'bg-amber-400'
           }`}
           aria-hidden
         />
         <span>
-          <strong className="font-medium text-violet-100">Live board</strong> ù {editors}
+          <strong className="font-medium text-violet-100">Live board</strong> ∑ {editors}
         </span>
       </div>
       <button
