@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { ShareScope, ShareScopeMode } from '../collaboration/types';
 import { useKanbanStore } from '../store/kanbanStore';
 import { describeShareScope } from '../collaboration/shareScope';
@@ -90,9 +91,9 @@ export function ShareBoardDialog({
 
   const allCount = projectOrder.filter((id) => projects[id]).length;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center print:hidden"
+      className="fixed inset-0 z-[100] flex items-end justify-center p-4 sm:items-center print:hidden"
       role="presentation"
     >
       <button
@@ -213,6 +214,7 @@ export function ShareBoardDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
