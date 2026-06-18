@@ -23,19 +23,25 @@ export function CollabBanner() {
       ? collab.peerCount > 0
         ? `${collab.peerCount + 1} people editing`
         : 'Waiting for others to join'
-      : 'Connecting to live sessionÖ';
+      : collab.status === 'disconnected'
+        ? 'Connection lost ù retryingù'
+        : 'Connecting to live sessionù';
 
   return (
     <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-violet-500/20 bg-violet-500/10 px-4 py-2 text-xs text-violet-200 sm:px-6 sm:text-sm print:hidden">
       <div className="flex items-center gap-2">
         <span
           className={`h-2 w-2 rounded-full ${
-            collab.status === 'connected' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+            collab.status === 'connected'
+              ? 'bg-emerald-400 animate-pulse'
+              : collab.status === 'disconnected'
+                ? 'bg-red-400 animate-pulse'
+                : 'bg-amber-400'
           }`}
           aria-hidden
         />
         <span>
-          <strong className="font-medium text-violet-100">Live board</strong> ∑ {editors}
+          <strong className="font-medium text-violet-100">Live board</strong> ù {editors}
         </span>
       </div>
       <button

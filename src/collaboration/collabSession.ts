@@ -1,5 +1,5 @@
 import * as Y from 'yjs';
-import { WebrtcProvider } from 'y-webrtc';
+import { WebsocketProvider } from 'y-websocket';
 import type { CollabPayload, CollabState, CollabStatus } from './types';
 import { COLLAB_QUERY_PARAM } from './types';
 import {
@@ -10,19 +10,21 @@ import {
 } from '../store/kanbanStore';
 import { createId } from '../utils/id';
 
-const SIGNALING_SERVERS = [
-  'wss://signaling.yjs.dev',
-  'wss://y-webrtc-signaling-eu.herokuapp.com',
-  'wss://y-webrtc-signaling-us.herokuapp.com',
-];
+/** Public Yjs demo server — fine for share links; override with VITE_COLLAB_WS_URL for production. */
+const WS_SERVER =
+  (import.meta.env.VITE_COLLAB_WS_URL as string | undefined)?.trim() ||
+  'wss://demos.yjs.dev/ws';
 
+const HOST_ROOM_KEY = 'kanban-collab-host-room';
 const PAYLOAD_KEY = 'workspace';
+const SEED_DELAY_MS = 600;
 
 let ydoc: Y.Doc | null = null;
-let provider: WebrtcProvider | null = null;
+let provider: WebsocketProvider | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let seedTimer: ReturnType<typeof setTimeout> | null = null;
 let lastPushedJson = '';
-let clientId = '';
+let canPushLocal = false;
 let unsubscribeStore: (() => void) | null = null;
 let stateListeners = new Set<(state: CollabState) => void>();
 
@@ -33,16 +35,16 @@ const collabState: CollabState = {
   synced: false,
 };
 
+function unwrapEvent<T>(event: T | T[]): T {
+  return Array.isArray(event) ? event[0] : event;
+}
+
 function getClientId(): string {
-  if (!clientId) {
-    const stored = sessionStorage.getItem('kanban-collab-client-id');
-    if (stored) {
-      clientId = stored;
-    } else {
-      clientId = createId();
-      sessionStorage.setItem('kanban-collab-client-id', clientId);
-    }
-  }
+  const stored = sessionStorage.getItem('kanban-collab-client-id');
+  if (stored) return stored;
+
+  const clientId = createId();
+  sessionStorage.setItem('kanban-collab-client-id', clientId);
   return clientId;
 }
 
@@ -57,6 +59,14 @@ function setCollabStatus(status: CollabStatus) {
   emitState();
 }
 
+function isRoomHost(roomId: string): boolean {
+  return sessionStorage.getItem(HOST_ROOM_KEY) === roomId;
+}
+
+function markRoomHost(roomId: string): void {
+  sessionStorage.setItem(HOST_ROOM_KEY, roomId);
+}
+
 function buildPayload(): CollabPayload {
   return {
     v: 1,
@@ -66,8 +76,9 @@ function buildPayload(): CollabPayload {
   };
 }
 
-function pushLocalState() {
+function pushLocalState(force = false) {
   if (!ydoc || isApplyingRemoteUpdate()) return;
+  if (!force && !canPushLocal) return;
 
   const payload = buildPayload();
   const json = JSON.stringify(payload);
@@ -99,6 +110,24 @@ function applyRemoteJson(json: string) {
 
   lastPushedJson = json;
   applyRemoteWorkspace(payload.data);
+  canPushLocal = true;
+}
+
+function maybeSeedLocalState(roomId: string) {
+  if (!ydoc) return;
+
+  const ymap = ydoc.getMap(PAYLOAD_KEY);
+  const existing = ymap.get('json');
+
+  if (typeof existing === 'string' && existing.length > 0) {
+    applyRemoteJson(existing);
+    return;
+  }
+
+  if (isRoomHost(roomId)) {
+    canPushLocal = true;
+    pushLocalState(true);
+  }
 }
 
 function attachStoreSync() {
@@ -116,6 +145,10 @@ function detachStoreSync() {
   if (pushTimer) {
     clearTimeout(pushTimer);
     pushTimer = null;
+  }
+  if (seedTimer) {
+    clearTimeout(seedTimer);
+    seedTimer = null;
   }
 }
 
@@ -164,36 +197,48 @@ export function startCollabSession(roomId: string): void {
   collabState.peerCount = 0;
   setCollabStatus('connecting');
 
+  canPushLocal = isRoomHost(roomId);
+
   ydoc = new Y.Doc();
   const ymap = ydoc.getMap(PAYLOAD_KEY);
 
-  provider = new WebrtcProvider(`kanban-board-${roomId}`, ydoc, {
-    signaling: SIGNALING_SERVERS,
-  });
+  provider = new WebsocketProvider(WS_SERVER, `kanban-board-${roomId}`, ydoc);
 
-  provider.on('synced', ({ synced }: { synced: boolean }) => {
-    collabState.synced = synced;
-    emitState();
+  provider.on('status', (event) => {
+    const { status } = unwrapEvent(event);
 
-    if (synced) {
-      const existing = ymap.get('json');
-      if (typeof existing === 'string' && existing.length > 0) {
-        applyRemoteJson(existing);
-      } else {
-        pushLocalState();
-      }
+    if (status === 'connected') {
       setCollabStatus('connected');
+      if (seedTimer) clearTimeout(seedTimer);
+      seedTimer = setTimeout(() => {
+        seedTimer = null;
+        maybeSeedLocalState(roomId);
+      }, SEED_DELAY_MS);
+    } else if (status === 'connecting') {
+      setCollabStatus('connecting');
+    } else if (status === 'disconnected') {
+      setCollabStatus('disconnected');
     }
   });
 
-  provider.on('peers', ({ webrtcPeers }: { webrtcPeers: unknown[] }) => {
-    collabState.peerCount = webrtcPeers.length;
+  provider.on('connection-error', () => {
+    setCollabStatus('disconnected');
+  });
+
+  provider.on('sync', (isSynced) => {
+    collabState.synced = unwrapEvent(isSynced);
+    emitState();
+  });
+
+  provider.awareness.on('change', () => {
+    if (!provider) return;
+    collabState.peerCount = Math.max(0, provider.awareness.getStates().size - 1);
     emitState();
   });
 
   ymap.observe(() => {
     const json = ymap.get('json');
-    if (typeof json === 'string') {
+    if (typeof json === 'string' && json.length > 0) {
       applyRemoteJson(json);
     }
   });
@@ -209,6 +254,7 @@ export function stopCollabSession(): void {
   ydoc?.destroy();
   ydoc = null;
   lastPushedJson = '';
+  canPushLocal = false;
   collabState.roomId = null;
   collabState.peerCount = 0;
   collabState.synced = false;
@@ -224,6 +270,7 @@ export function initCollaborationFromUrl(): void {
 
 export function startNewShareSession(): string {
   const roomId = createRoomId();
+  markRoomHost(roomId);
   navigateToRoom(roomId);
   startCollabSession(roomId);
   return buildShareUrl(roomId);
